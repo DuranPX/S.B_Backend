@@ -2,53 +2,65 @@ package com.SBuses.demo.Controllers;
 
 import com.SBuses.demo.Models.User;
 import com.SBuses.demo.Service.UserService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/User")
-@RequiredArgsConstructor
-
+@RequestMapping("/api/users")
 public class UserController {
 
-    private final UserService userService;
+    @Autowired
+    private UserService userService;
 
     @GetMapping
     public ResponseEntity<List<User>> getAll() {
-        return ResponseEntity.ok(userService.getAll());
+        return ResponseEntity.ok(userService.find());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<User> getById(@PathVariable String id) {
-        return userService.getById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        User user = userService.findById(id).orElse(null);
+        if (user != null) {
+            return ResponseEntity.ok(user);
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/email/{email}")
     public ResponseEntity<User> getByEmail(@PathVariable String email) {
-        return userService.getByEmail(email)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        User user = userService.findByEmail(email).orElse(null);
+        if (user != null) {
+            return ResponseEntity.ok(user);
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @PostMapping
     public ResponseEntity<User> create(@RequestBody User user) {
-        return ResponseEntity.ok(userService.create(user));
+        User created = userService.create(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<User> update(@PathVariable String id, @RequestBody User user) {
-        return ResponseEntity.ok(userService.update(id, user));
+        User updated = userService.update(id, user);
+        if (updated != null) {
+            return ResponseEntity.ok(updated);
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id) {
-        userService.delete(id);
-        return ResponseEntity.noContent().build();
+        boolean deleted = userService.delete(id);
+        if (deleted) {
+            return ResponseEntity.noContent().build();    // 204
+        }
+        return ResponseEntity.notFound().build();         // 404
     }
     // Asignar rol a usuario
     @PostMapping("/{id}/roles/{rolId}")
