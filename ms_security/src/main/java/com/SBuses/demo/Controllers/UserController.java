@@ -62,4 +62,15 @@ public class UserController {
         }
         return ResponseEntity.notFound().build();         // 404
     }
+    // Asignar rol a usuario
+    @PostMapping("/{id}/roles/{rolId}")
+    public ResponseEntity<User> assignRole(@PathVariable String id, @PathVariable String rolId) {
+        return ResponseEntity.ok(userService.assignRole(id, rolId));
+    }
+
+    // Quitar rol a usuario
+    @DeleteMapping("/{id}/roles/{rolId}")
+    public ResponseEntity<User> removeRole(@PathVariable String id, @PathVariable String rolId) {
+        return ResponseEntity.ok(userService.removeRole(id, rolId));
+    }
 }

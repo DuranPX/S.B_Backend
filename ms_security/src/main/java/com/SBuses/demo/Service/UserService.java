@@ -1,6 +1,7 @@
 package com.SBuses.demo.Service;
 
 import com.SBuses.demo.Models.User;
+import com.SBuses.demo.Repository.RoleRepository;
 import com.SBuses.demo.Repository.UserRepository;
 import com.SBuses.demo.Security.JWT.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
 
     // Obtener todos los usuarios
     public List<User> find() {
@@ -103,8 +107,7 @@ public class UserService {
 
     // Actualizar usuario
     public User update(String id, User user) {
-        User existing = userRepository.findById(id)
-                .orElse(null);
+        User existing = userRepository.findById(id).orElse(null);
         if (existing != null) {
             existing.setName(user.getName());
             existing.setLastName(user.getLastName());
@@ -127,5 +130,35 @@ public class UserService {
             return true;
         }
         return false;
+    }
+
+    // Asignar rol a usuario
+    public User assignRole(String userId, String rolId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        if (!roleRepository.existsById(rolId)) {
+            throw new RuntimeException("Rol no encontrado");
+        }
+
+        if (user.getRoles().contains(rolId)) {
+            throw new RuntimeException("El usuario ya tiene ese rol");
+        }
+
+        user.getRoles().add(rolId);
+        return userRepository.save(user);
+    }
+
+    // Quitar rol a usuario
+    public User removeRole(String userId, String rolId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        if (!user.getRoles().contains(rolId)) {
+            throw new RuntimeException("El usuario no tiene ese rol");
+        }
+
+        user.getRoles().remove(rolId);
+        return userRepository.save(user);
     }
 }
