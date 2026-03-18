@@ -4,6 +4,7 @@ import com.SBuses.demo.Models.User;
 import com.SBuses.demo.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.SBuses.demo.Repository.RoleRepository;
 
 import java.util.Date;
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
-
+    private final RoleRepository roleRepository;
     // Obtener todos los usuarios
     public List<User> getAll() {
         return userRepository.findAll();
@@ -60,5 +61,34 @@ public class UserService {
             throw new RuntimeException("Usuario no encontrado");
         }
         userRepository.deleteById(id);
+    }
+    // Asignar rol a usuario
+    public User assignRole(String userId, String rolId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        if (!roleRepository.existsById(rolId)) {
+            throw new RuntimeException("Rol no encontrado");
+        }
+
+        if (user.getRoles().contains(rolId)) {
+            throw new RuntimeException("El usuario ya tiene ese rol");
+        }
+
+        user.getRoles().add(rolId);
+        return userRepository.save(user);
+    }
+
+    // Quitar rol a usuario
+    public User removeRole(String userId, String rolId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        if (!user.getRoles().contains(rolId)) {
+            throw new RuntimeException("El usuario no tiene ese rol");
+        }
+
+        user.getRoles().remove(rolId);
+        return userRepository.save(user);
     }
 }

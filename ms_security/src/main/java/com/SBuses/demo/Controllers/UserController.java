@@ -50,4 +50,15 @@ public class UserController {
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }
+    // Asignar rol a usuario
+    @PostMapping("/{id}/roles/{rolId}")
+    public ResponseEntity<User> assignRole(@PathVariable String id, @PathVariable String rolId) {
+        return ResponseEntity.ok(userService.assignRole(id, rolId));
+    }
+
+    // Quitar rol a usuario
+    @DeleteMapping("/{id}/roles/{rolId}")
+    public ResponseEntity<User> removeRole(@PathVariable String id, @PathVariable String rolId) {
+        return ResponseEntity.ok(userService.removeRole(id, rolId));
+    }
 }
