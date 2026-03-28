@@ -9,7 +9,7 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class AuthExterna {
+public class AuthExternal {
 
     private String proveedor;  // "google" | "microsoft" | "github"
 

@@ -24,7 +24,6 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
 
-        // Paso 1: validar datos y construir el User
         User newUser = userService.validateRegister(
                 request.getName(),
                 request.getLastName(),
@@ -34,14 +33,12 @@ public class AuthController {
                 request.getAddress()
         );
 
-        // Paso 2: si validateRegister retornó null, el email ya existe
         if (newUser == null) {
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)           // 409
                     .body("El email ya está registrado");
         }
 
-        // Paso 3: guardar en MongoDB
         User saved = userService.create(newUser);
 
         return ResponseEntity
