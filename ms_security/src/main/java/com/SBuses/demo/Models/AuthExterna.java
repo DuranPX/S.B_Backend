@@ -11,9 +11,9 @@ import java.util.Date;
 @NoArgsConstructor
 public class AuthExterna {
 
-    private String proveedor;  // "google" | "microsoft" | "github"
+    private String proveedor;  // "google" | "microsoft" | "github" | providerType
 
-    private String idExterno;
+    private String idExterno; // providerId
 
     private String email;
 

@@ -60,10 +60,10 @@ public class UserService {
         newUser.setEmail(email.toLowerCase().trim());
         newUser.setPassword(encryptionService.encryptPassword(password)); // BCrypt
         newUser.setPhone(phone);
-        newUser.setAddress(address);
+        newUser.setAddress(address); // se activa cuando verifica el código 2FA
         newUser.setRegistrationDate(new Date());
         newUser.setLastTime(new Date());
-        newUser.setActivo(true);
+        newUser.setActivo(false);
         newUser.setRoles(new ArrayList<>(List.of("USER")));
         newUser.setAuthExternas(new ArrayList<>());
 
@@ -79,21 +79,21 @@ public class UserService {
         // 1. Buscar el usuario por email
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
-            return null; // email no existe
+            return null;
         }
 
         // 2. Verificar que el usuario esté activo
         if (!user.isActivo()) {
-            return null; // cuenta desactivada
+            return "INACTIVO"; // cuenta no verificada aún
         }
 
         // 3. Comparar la contraseña con el hash guardado en BD
         if (!encryptionService.checkPassword(password, user.getPassword())) {
-            return null; // contraseña incorrecta
+            return null;
         }
 
-        // 4. Todo correcto — generar y retornar el JWT
-        return jwtUtil.generateToken(user.getEmail(), user.getRoles());
+        // 4. Credenciales correctas — disparar 2FA en vez de devolver JWT directamente
+        return "2FA_REQUERIDO";
     }
 
     // Crear usuario
@@ -160,5 +160,29 @@ public class UserService {
 
         user.getRoles().remove(rolId);
         return userRepository.save(user);
+    }
+
+    // Activar al usuario
+    public void activateUser(String email) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user != null) {
+            user.setActivo(true);
+            userRepository.save(user);
+        }
+    }
+
+    // Resetear la contraseña
+    public boolean resetPassword(String email, String newPassword) {
+
+        // 1. Buscar el usuario
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) return false;
+
+        // 2. Encriptar la nueva contraseña con BCrypt
+        user.setPassword(encryptionService.encryptPassword(newPassword));
+
+        // 3. Actualizar en MongoDB
+        userRepository.save(user);
+        return true;
     }
 }
