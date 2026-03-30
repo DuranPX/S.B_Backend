@@ -65,7 +65,7 @@ public class UserService {
         newUser.setLastTime(new Date());
         newUser.setActivo(false);
         newUser.setRoles(new ArrayList<>(List.of("USER")));
-        newUser.setAuthExternas(new ArrayList<>());
+        newUser.setAuthExternals(new ArrayList<>());
 
         return newUser;
     }
