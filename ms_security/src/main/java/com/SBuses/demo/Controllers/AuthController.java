@@ -3,9 +3,12 @@ package com.SBuses.demo.Controllers;
 import com.SBuses.demo.DTOs.LoginRequest;
 import com.SBuses.demo.DTOs.RegisterRequest;
 import com.SBuses.demo.DTOs.ResetPasswordRequest;
+import com.SBuses.demo.DTOs.SelectRoleRequest;
+import com.SBuses.demo.Models.Role;
 import com.SBuses.demo.Models.User;
 import com.SBuses.demo.Security.JWT.JwtUtil;
 import com.SBuses.demo.Service.RecaptchaService;
+import com.SBuses.demo.Service.RoleService;
 import com.SBuses.demo.Service.TwoFactorService;
 import com.SBuses.demo.Service.UserService;
 import jakarta.validation.Valid;
@@ -14,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/auth")
@@ -21,6 +25,9 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private RoleService roleService;
 
     @Autowired
     private TwoFactorService twoFactorService;
@@ -279,5 +286,116 @@ public class AuthController {
                         .body("No existe un código activo para este email.");
             }
         }
+    }
+
+    // ─────────────────────────────────────────────
+    // SELECCIÓN DE ROL (RBAC)
+    // ─────────────────────────────────────────────
+
+    /**
+     * POST /auth/select-role
+     * Cambia el token temporal por un token definitivo asociado a un rol específico
+     * y retorna la estructura del rol con sus permisos embebidos.
+     */
+    @PostMapping("/select-role")
+    public ResponseEntity<?> selectRole(@Valid @RequestBody SelectRoleRequest request,
+                                        @RequestHeader("Authorization") String tokenHeader) {
+
+        if (tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token no proveído");
+        }
+
+        String token = tokenHeader.substring(7);
+        
+        // El filtro JWT automáticamente invalida tokens incorrectos que llegan con Bearer en /auth
+        // pero por seguridad manual lo extraemos
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido o manipulado");
+        }
+
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userService.findByEmail(email).orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado en la base de datos.");
+        }
+
+        // Verificar si el usuario efectivamente tiene asignado el rol que está solicitando
+        // El frontend envía el DTO con ej: {"role": "ADMIN"}
+        if (!user.getRoles().contains(request.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("El usuario no tiene asignado el rol: " + request.getRole());
+        }
+
+        // 1. Obtener la información completa del Rol desde Mongo (que incluye la lista estructurada de permisos)
+        Role roleData = roleService.getByNombre(request.getRole()).orElse(null);
+        if (roleData == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("La estructura y configuración del rol solicitado no fue encontrada en el sistema.");
+        }
+
+        // 2. Generar el nuevo JWT Definivo con el claim "roles" fijado únicamente al rol seleccionado
+        // y con un claim "token_type" = "auth_role"
+        String newToken = jwtUtil.generateTokenForRole(user.getEmail(), request.getRole());
+
+        // 3. Crear el JSON de respuesta tal como fue solicitado (anidando token y Role con sus permisos)
+        Map<String, Object> response = Map.of(
+                "token", newToken,
+                "role", roleData
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * GET /auth/me
+     * Retorna la información del usuario en sesión y los permisos de su rol activo basado en el JWT definitivo.
+     * Ideal para recargar la app (F5) de forma segura sin guardar detalles sensibles en localStorage.
+     */
+    @GetMapping("/me")
+    public ResponseEntity<?> getMe(@RequestHeader("Authorization") String tokenHeader) {
+
+        if (tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token no proveído");
+        }
+
+        String token = tokenHeader.substring(7);
+
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido o manipulado");
+        }
+
+        // 1. Verificación de Seguridad CRÍTICA: Asegurarse de que el usuario envíe su "Token Definitivo", 
+        // no el token temporal.
+        if (!"auth_role".equals(jwtUtil.getTokenTypeFromToken(token))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Acceso denegado. Se requiere un token de rol activo validado.");
+        }
+
+        String email = jwtUtil.getEmailFromToken(token);
+        User user = userService.findByEmail(email).orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado.");
+        }
+
+        // 2. Extraer el rol activo de forma segura desde los Claims del JWT
+        List<String> rolesEnToken = jwtUtil.getRolesFromToken(token);
+        if (rolesEnToken == null || rolesEnToken.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("El token no contiene un rol asociado.");
+        }
+        
+        String rolActivo = rolesEnToken.get(0);
+        Role roleData = roleService.getByNombre(rolActivo).orElse(null);
+
+        // 3. Limpiar información sensible antes de enviar al Front
+        user.setPassword(null);
+
+        Map<String, Object> response = Map.of(
+                "user", user,
+                "role", roleData != null ? roleData : "Rol no existente en el sistema."
+        );
+
+        return ResponseEntity.ok(response);
     }
 }

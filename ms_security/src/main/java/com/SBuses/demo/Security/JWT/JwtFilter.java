@@ -1,6 +1,5 @@
 package com.SBuses.demo.Security.JWT;
 
-import com.SBuses.demo.Security.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,9 +19,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtUtil jwtUtil;
-
-    @Autowired
-    private UserDetailsServiceImpl userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -53,9 +49,22 @@ public class JwtFilter extends OncePerRequestFilter {
         // 5. Extraer el email del token
         String email = jwtUtil.getEmailFromToken(token);
 
-        // 6. Cargar el usuario y registrar la autenticación en Spring Security
+        // 6. Configurar la autenticación usando los datos del JWT (sin ir a la BD en cada request)
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+            
+            // Extraer roles del JWT y convertirlos a SimpleGrantedAuthority
+            java.util.List<String> rolesFromToken = jwtUtil.getRolesFromToken(token);
+            java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = 
+                rolesFromToken.stream()
+                              .map(role -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                              .collect(java.util.stream.Collectors.toList());
+
+            // Crear un UserDetails genérico basado en el token, no de la base de datos
+            UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+                    email, 
+                    "", // password no es necesaria acá
+                    authorities
+            );
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
