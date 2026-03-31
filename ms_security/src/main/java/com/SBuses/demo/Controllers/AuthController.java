@@ -109,9 +109,7 @@ public class AuthController {
                 .ok("Credenciales correctas. Se envió un código 2FA a tu correo.");
     }
 
-    // ─────────────────────────────────────────────
     // ENVIAR código 2FA
-    // ─────────────────────────────────────────────
 
     /**
      * POST /auth/2fa/send
@@ -141,9 +139,7 @@ public class AuthController {
                 .ok("Código enviado al correo " + email);
     }
 
-    // ─────────────────────────────────────────────
     // VERIFICAR código 2FA
-    // ─────────────────────────────────────────────
 
     /**
      * POST /auth/2fa/verify
@@ -206,9 +202,7 @@ public class AuthController {
         }
     }
 
-    // ─────────────────────────────────────────────
     // RECUPERACIÓN DE CONTRASEÑA
-    // ─────────────────────────────────────────────
 
     /**
      * POST /auth/recovery/send
@@ -288,9 +282,7 @@ public class AuthController {
         }
     }
 
-    // ─────────────────────────────────────────────
     // SELECCIÓN DE ROL (RBAC)
-    // ─────────────────────────────────────────────
 
     /**
      * POST /auth/select-role
@@ -327,18 +319,18 @@ public class AuthController {
                     .body("El usuario no tiene asignado el rol: " + request.getRole());
         }
 
-        // 1. Obtener la información completa del Rol desde Mongo (que incluye la lista estructurada de permisos)
+        // Obtener la información completa del Rol desde Mongo (que incluye la lista estructurada de permisos)
         Role roleData = roleService.getByNombre(request.getRole()).orElse(null);
         if (roleData == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("La estructura y configuración del rol solicitado no fue encontrada en el sistema.");
         }
 
-        // 2. Generar el nuevo JWT Definivo con el claim "roles" fijado únicamente al rol seleccionado
+        // Generar el nuevo JWT Definivo con el claim "roles" fijado únicamente al rol seleccionado
         // y con un claim "token_type" = "auth_role"
         String newToken = jwtUtil.generateTokenForRole(user.getEmail(), request.getRole());
 
-        // 3. Crear el JSON de respuesta tal como fue solicitado (anidando token y Role con sus permisos)
+        // Crear el JSON de respuesta tal como fue solicitado (anidando token y Role con sus permisos)
         Map<String, Object> response = Map.of(
                 "token", newToken,
                 "role", roleData
@@ -365,7 +357,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido o manipulado");
         }
 
-        // 1. Verificación de Seguridad CRÍTICA: Asegurarse de que el usuario envíe su "Token Definitivo", 
+        // Verificación de Seguridad CRÍTICA: Asegurarse de que el usuario envíe su "Token Definitivo",
         // no el token temporal.
         if (!"auth_role".equals(jwtUtil.getTokenTypeFromToken(token))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -379,7 +371,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado.");
         }
 
-        // 2. Extraer el rol activo de forma segura desde los Claims del JWT
+        // Extraer el rol activo de forma segura desde los Claims del JWT
         List<String> rolesEnToken = jwtUtil.getRolesFromToken(token);
         if (rolesEnToken == null || rolesEnToken.isEmpty()) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("El token no contiene un rol asociado.");
@@ -388,7 +380,7 @@ public class AuthController {
         String rolActivo = rolesEnToken.get(0);
         Role roleData = roleService.getByNombre(rolActivo).orElse(null);
 
-        // 3. Limpiar información sensible antes de enviar al Front
+        // Limpiar información sensible antes de enviar al Front
         user.setPassword(null);
 
         Map<String, Object> response = Map.of(

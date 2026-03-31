@@ -48,12 +48,12 @@ public class UserService {
      */
     public User validateRegister(String name, String lastName, String email,
                                  String password, String phone, String address) {
-        // 1. Verificar email duplicado
+        // Verificar email duplicado
         if (userRepository.existsByEmail(email)) {
             return null;
         }
 
-        // 2. Construir el User con los campos seguros
+        // Construir el User con los campos seguros
         User newUser = new User();
         newUser.setName(name);
         newUser.setLastName(lastName);
@@ -64,7 +64,7 @@ public class UserService {
         newUser.setRegistrationDate(new Date());
         newUser.setLastTime(new Date());
         newUser.setActivo(false);
-        newUser.setRoles(new ArrayList<>(List.of("USER")));
+        newUser.setRoles(new ArrayList<>(List.of("Ciudadano")));
         newUser.setAuthExternals(new ArrayList<>());
 
         return newUser;
@@ -76,23 +76,23 @@ public class UserService {
      */
     public String login(String email, String password) {
 
-        // 1. Buscar el usuario por email
+        // Buscar el usuario por email
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
             return null;
         }
 
-        // 2. Verificar que el usuario esté activo
+        // Verificar que el usuario esté activo
         if (!user.isActivo()) {
             return "INACTIVO"; // cuenta no verificada aún
         }
 
-        // 3. Comparar la contraseña con el hash guardado en BD
+        // Comparar la contraseña con el hash guardado en BD
         if (!encryptionService.checkPassword(password, user.getPassword())) {
             return null;
         }
 
-        // 4. Credenciales correctas — disparar 2FA en vez de devolver JWT directamente
+        // Credenciales correctas — disparar 2FA en vez de devolver JWT directamente
         return "2FA_REQUERIDO";
     }
 
@@ -137,8 +137,12 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        if (!roleRepository.existsById(rolId)) {
+        if (!roleRepository.existsByNombre(rolId)) {
             throw new RuntimeException("Rol no encontrado");
+        }
+
+        if (user.getRoles() == null) {
+            user.setRoles(new ArrayList<>());
         }
 
         if (user.getRoles().contains(rolId)) {
@@ -154,7 +158,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        if (!user.getRoles().contains(rolId)) {
+        if (user.getRoles() == null || !user.getRoles().contains(rolId)) {
             throw new RuntimeException("El usuario no tiene ese rol");
         }
 
@@ -174,14 +178,14 @@ public class UserService {
     // Resetear la contraseña
     public boolean resetPassword(String email, String newPassword) {
 
-        // 1. Buscar el usuario
+        // Buscar el usuario
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) return false;
 
-        // 2. Encriptar la nueva contraseña con BCrypt
+        // Encriptar la nueva contraseña con BCrypt
         user.setPassword(encryptionService.encryptPassword(newPassword));
 
-        // 3. Actualizar en MongoDB
+        // Actualizar en MongoDB
         userRepository.save(user);
         return true;
     }

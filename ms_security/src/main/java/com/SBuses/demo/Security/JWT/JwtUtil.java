@@ -48,9 +48,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    // ─────────────────────────────────────────────
     // VALIDAR token
-    // ─────────────────────────────────────────────
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
@@ -63,9 +61,7 @@ public class JwtUtil {
         }
     }
 
-    // ─────────────────────────────────────────────
     // LEER datos del token
-    // ─────────────────────────────────────────────
     public String getEmailFromToken(String token) {
         return getClaims(token).getSubject();
     }
