@@ -26,19 +26,19 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. Leer el header Authorization
+        // Leer el header Authorization
         String authHeader = request.getHeader("Authorization");
 
-        // 2. Si no tiene el header o no empieza con "Bearer ", dejar pasar
+        // Si no tiene el header o no empieza con "Bearer ", dejar pasar
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 3. Extraer el token (quitar el prefijo "Bearer ")
+        // Extraer el token (quitar el prefijo "Bearer ")
         String token = authHeader.substring(7);
 
-        // 4. Validar el token
+        // Validar el token
         if (!jwtUtil.validateToken(token)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
@@ -46,10 +46,10 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 5. Extraer el email del token
+        // Extraer el email del token
         String email = jwtUtil.getEmailFromToken(token);
 
-        // 6. Configurar la autenticación usando los datos del JWT (sin ir a la BD en cada request)
+        // Configurar la autenticación usando los datos del JWT (sin ir a la BD en cada request)
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             
             // Extraer roles del JWT y convertirlos a SimpleGrantedAuthority
@@ -76,7 +76,7 @@ public class JwtFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
-        // 7. Continuar con la cadena de filtros
+        // Continuar con la cadena de filtros
         filterChain.doFilter(request, response);
     }
 }

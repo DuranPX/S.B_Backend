@@ -37,9 +37,7 @@ public class GmailService {
     // Ruta del credentials.json
     private static final String CREDENTIALS_PATH = "/confidencial/credentials.json";
 
-    // ─────────────────────────────────────────────
     // Autenticación — equivalente al authenticate_gmail() de Python
-    // ─────────────────────────────────────────────
     private Credential getCredentials(NetHttpTransport httpTransport) throws IOException {
         InputStream in = GmailService.class.getResourceAsStream(CREDENTIALS_PATH);
         if (in == null) {
@@ -62,9 +60,7 @@ public class GmailService {
         return new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
     }
 
-    // ─────────────────────────────────────────────
     // Construir el servicio de Gmail
-    // ─────────────────────────────────────────────
     private Gmail buildGmailService() throws GeneralSecurityException, IOException {
         NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         return new Gmail.Builder(httpTransport, JSON_FACTORY, getCredentials(httpTransport))
@@ -72,9 +68,7 @@ public class GmailService {
                 .build();
     }
 
-    // ─────────────────────────────────────────────
     // Enviar correo HTML — equivalente al send_message() de Python
-    // ─────────────────────────────────────────────
     public void sendEmail(String to, String subject, String htmlBody) {
         try {
             Gmail service = buildGmailService();
@@ -86,9 +80,7 @@ public class GmailService {
         }
     }
 
-    // ─────────────────────────────────────────────
     // Construir el mensaje MIME — equivalente al create_message_html() de Python
-    // ─────────────────────────────────────────────
     private Message createMessage(String to, String subject, String htmlBody)
             throws MessagingException, IOException {
 
@@ -110,9 +102,7 @@ public class GmailService {
         return message;
     }
 
-    // ─────────────────────────────────────────────
     // HTML del correo 2FA para Register y Login
-    // ─────────────────────────────────────────────
     public String build2FAEmailHtml(String userName, String codigo) {
         return """
                 <!DOCTYPE html>
@@ -120,7 +110,7 @@ public class GmailService {
                 <body style="font-family: Arial, sans-serif; background-color: #f4f4f4;">
                     <div style="max-width:600px; margin:40px auto; background:#fff;
                                 border-radius:8px; padding:30px;">
-                        <h2 style="color:#1a73e8;">🚌 Sistema de Buses Inteligentes</h2>
+                        <h2 style="color:#1a73e8;"> Sistema de Buses Inteligentes</h2>
                         <p>Hola <b>%s</b>, tu código de verificación es:</p>
                         <div style="font-size:36px; font-weight:bold; letter-spacing:8px;
                                     color:#1a73e8; text-align:center; padding:20px;
@@ -135,9 +125,7 @@ public class GmailService {
                 """.formatted(userName, codigo);
     }
 
-    // ─────────────────────────────────────────────
     // HTML del correo 2FA para Password Recovery
-    // ─────────────────────────────────────────────
     public String buildRecoveryEmailHtml(String userName, String codigo) {
         return """
             <!DOCTYPE html>
@@ -150,7 +138,7 @@ public class GmailService {
                     <!-- Header -->
                     <div style="background:#d93025; padding:30px; text-align:center;">
                         <h1 style="color:#fff; margin:0; font-size:22px;">
-                            🔐 Recuperación de Contraseña
+                             Recuperación de Contraseña
                         </h1>
                         <p style="color:#ffd0cc; margin:8px 0 0 0; font-size:14px;">
                             Sistema de Buses Inteligentes
