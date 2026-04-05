@@ -25,7 +25,7 @@ public class RoleService {
     }
 
     // Obtener rol por nombre
-    public Optional<Role> getByNombre(String name) {
+    public Optional<Role> getByName(String name) {
         return roleRepository.findByName((name));
     }
 
