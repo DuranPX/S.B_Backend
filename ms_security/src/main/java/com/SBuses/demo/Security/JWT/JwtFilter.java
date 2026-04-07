@@ -51,13 +51,22 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // Configurar la autenticación usando los datos del JWT (sin ir a la BD en cada request)
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            String tokenType = jwtUtil.getTokenTypeFromToken(token);
+            java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities;
             
-            // Extraer roles del JWT y convertirlos a SimpleGrantedAuthority
-            java.util.List<String> rolesFromToken = jwtUtil.getRolesFromToken(token);
-            java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = 
-                rolesFromToken.stream()
-                              .map(role -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
-                              .collect(java.util.stream.Collectors.toList());
+            if ("general".equals(tokenType)) {
+                // Principio de Menor Privilegio (POLP)
+                // Token general solo otorga privilegio pre-auth para seleccionar rol o confirmar 2FA
+                authorities = java.util.List.of(
+                    new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_PRE_AUTH")
+                );
+            } else {
+                // Token definitivo ('auth_role') extrae roles específicos
+                java.util.List<String> rolesFromToken = jwtUtil.getRolesFromToken(token);
+                authorities = rolesFromToken.stream()
+                                  .map(role -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                                  .collect(java.util.stream.Collectors.toList());
+            }
 
             // Crear un UserDetails genérico basado en el token, no de la base de datos
             UserDetails userDetails = new org.springframework.security.core.userdetails.User(

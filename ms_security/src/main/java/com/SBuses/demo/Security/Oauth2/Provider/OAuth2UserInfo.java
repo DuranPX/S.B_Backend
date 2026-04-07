@@ -1,0 +1,23 @@
+package com.SBuses.demo.Security.Oauth2.Provider;
+
+import java.util.Map;
+
+public abstract class OAuth2UserInfo {
+    protected Map<String, Object> attributes;
+
+    public OAuth2UserInfo(Map<String, Object> attributes) {
+        this.attributes = attributes;
+    }
+
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
+
+    public abstract String getId();
+
+    public abstract String getName();
+
+    public abstract String getLastName();
+
+    public abstract String getEmail();
+}
