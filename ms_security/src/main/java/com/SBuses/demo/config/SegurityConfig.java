@@ -14,6 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.firewall.StrictHttpFirewall;
 
 import com.SBuses.demo.Models.AuthExterna;
 import com.SBuses.demo.Models.Role;
@@ -44,6 +47,18 @@ public class SegurityConfig {
     private JwtFilter jwtFilter;
 
     @Bean
+    public HttpFirewall strictHttpFirewall() {
+        StrictHttpFirewall firewall = new StrictHttpFirewall();
+        // Configuraciones explícitas de rechazo de inyecciones Regex, Path Traversal y caracteres Unicode sospechosos
+        firewall.setAllowSemicolon(false);
+        firewall.setAllowUrlEncodedSlash(false);
+        firewall.setAllowBackSlash(false);
+        firewall.setAllowUrlEncodedPercent(false);
+        firewall.setAllowUrlEncodedPeriod(false);
+        return firewall;
+    }
+
+    @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
@@ -51,6 +66,7 @@ public class SegurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults()) // Inyecta el bean de cors
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -20,6 +20,9 @@ public class Role {
     private boolean activo;
     private List<Permission> permisos;
 
+    public Role() {
+    }
+
     public Role(String nombre, String descripcion, boolean activo, List<Permission> permisos) {
         this.nombre = nombre;
         this.descripcion = descripcion;

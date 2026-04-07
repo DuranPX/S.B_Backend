@@ -29,13 +29,13 @@ public class User {
 
     private List<String> roles;  // referencia
 
-    private List<AuthExterna> authExternas;  // embebido
+    private List<AuthExternal> authExternals;  // embebido
 
     public User(){
 
     }
 
-    public User(String name, String lastName, String email, String password, String phone, String address, String photo, Date registrationDate, Date lastTime, boolean activo, List<String> roles, List<AuthExterna> authExternas) {
+    public User(String name, String lastName, String email, String password, String phone, String address, String photo, Date registrationDate, Date lastTime, boolean activo, List<String> roles, List<AuthExternal> authExternals) {
         this.name = name;
         this.lastName = lastName;
         this.email = email;
@@ -47,6 +47,6 @@ public class User {
         this.lastTime = lastTime;
         this.activo = activo;
         this.roles = roles;
-        this.authExternas = authExternas;
+        this.authExternals = authExternals;
     }
 }

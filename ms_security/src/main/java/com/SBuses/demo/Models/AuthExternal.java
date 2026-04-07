@@ -9,11 +9,11 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class AuthExterna {
+public class AuthExternal {
 
-    private String proveedor;  // "google" | "microsoft" | "github"
+    private String proveedor;  // "google" | "microsoft" | "github" | providerType
 
-    private String idExterno;
+    private String idExterno; // providerId
 
     private String email;
 
