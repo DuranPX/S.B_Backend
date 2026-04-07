@@ -387,7 +387,7 @@ public class AuthController {
                 "user", user,
                 "role", roleData != null ? roleData : "Rol no existente en el sistema."
         );
-
+        
         return ResponseEntity.ok(response);
     }
 }
