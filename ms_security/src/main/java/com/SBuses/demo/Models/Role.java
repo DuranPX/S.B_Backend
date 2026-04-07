@@ -14,15 +14,15 @@ public class Role {
     private String id;
 
     @Indexed(unique = true)
-    private String name;
+    private String nombre;
 
-    private String description;
+    private String descripcion;
     private boolean activo;
     private List<Permission> permisos;
 
-    public Role(String name, String description, boolean activo, List<Permission> permisos) {
-        this.name = name;
-        this.description = description;
+    public Role(String nombre, String descripcion, boolean activo, List<Permission> permisos) {
+        this.nombre = nombre;
+        this.descripcion = descripcion;
         this.activo = activo;
         this.permisos = permisos;
     }

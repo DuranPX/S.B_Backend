@@ -26,12 +26,12 @@ public class RoleService {
 
     // Obtener rol por nombre
     public Optional<Role> getByName(String name) {
-        return roleRepository.findByName((name));
+        return roleRepository.findByNombre((name));
     }
 
     // Crear rol
     public Role create(Role role) {
-        if (roleRepository.existsByName(role.getName())) {
+        if (roleRepository.existsByNombre(role.getNombre())) {
             throw new RuntimeException("Ya existe un rol con ese nombre");
         }
         return roleRepository.save(role);
@@ -41,8 +41,8 @@ public class RoleService {
     public Role update(String id, Role role) {
         Role existing = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
-        existing.setName(role.getName());
-        existing.setDescription(role.getDescription());
+        existing.setNombre(role.getNombre());
+        existing.setDescripcion(role.getDescripcion());
         existing.setActivo(role.isActivo());
         existing.setPermisos(role.getPermisos());
         return roleRepository.save(existing);

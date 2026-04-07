@@ -91,7 +91,7 @@ public class SegurityConfig {
                                     : "github";
 
                             User user = userRepository.findByEmail(email).orElseGet(() -> {
-                                Role rolCiudadano = roleRepository.findByName("Ciudadano")
+                                Role rolCiudadano = roleRepository.findByNombre("Ciudadano")
                                         .orElseThrow(() -> new RuntimeException("Rol Ciudadano no encontrado"));
 
                                 User newUser = new User();
