@@ -7,13 +7,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/** Interceptor JWT que valida tokens y configura el SecurityContext con UserPrincipal. */
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
@@ -26,19 +26,15 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Leer el header Authorization
         String authHeader = request.getHeader("Authorization");
 
-        // Si no tiene el header o no empieza con "Bearer ", dejar pasar
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Extraer el token (quitar el prefijo "Bearer ")
         String token = authHeader.substring(7);
 
-        // Validar el token
         if (!jwtUtil.validateToken(token)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
@@ -46,38 +42,31 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Extraer el email del token
         String email = jwtUtil.getEmailFromToken(token);
 
-        // Configurar la autenticación usando los datos del JWT (sin ir a la BD en cada request)
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             String tokenType = jwtUtil.getTokenTypeFromToken(token);
+            String userId = jwtUtil.getUserIdFromToken(token);
             java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities;
-            
+
             if ("general".equals(tokenType)) {
-                // Principio de Menor Privilegio (POLP)
-                // Token general solo otorga privilegio pre-auth para seleccionar rol o confirmar 2FA
                 authorities = java.util.List.of(
                     new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_PRE_AUTH")
                 );
             } else {
-                // Token definitivo ('auth_role') extrae roles específicos
                 java.util.List<String> rolesFromToken = jwtUtil.getRolesFromToken(token);
                 authorities = rolesFromToken.stream()
                                   .map(role -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
                                   .collect(java.util.stream.Collectors.toList());
             }
 
-            // Crear un UserDetails genérico basado en el token, no de la base de datos
-            UserDetails userDetails = new org.springframework.security.core.userdetails.User(
-                    email, 
-                    "", // password no es necesaria acá
-                    authorities
+            com.SBuses.demo.Security.UserPrincipal principal = new com.SBuses.demo.Security.UserPrincipal(
+                    userId, email, authorities
             );
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
+                            principal, null, principal.getAuthorities());
 
             authentication.setDetails(
                     new WebAuthenticationDetailsSource().buildDetails(request));
@@ -85,7 +74,6 @@ public class JwtFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
-        // Continuar con la cadena de filtros
         filterChain.doFilter(request, response);
     }
 }

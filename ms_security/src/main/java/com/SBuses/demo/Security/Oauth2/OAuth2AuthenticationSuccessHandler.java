@@ -116,7 +116,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             twoFactorService.sendCode(email, "LOGIN");
             targetUrl = redirectUrl + "?email=" + email + "&require2fa=true";
         } else {
-            String token = jwtUtil.generateToken(email, user.getRoles());
+            String token = jwtUtil.generateToken(user.getId(), email, user.getRoles());
             targetUrl = redirectUrl + "?token=" + token;
         }
 
