@@ -166,7 +166,7 @@ public class AuthController {
             case SUCCESS_LOGIN -> {
                 // Buscar usuario para obtener sus roles y generar JWT
                 User user = userService.findByEmail(email).orElse(null);
-                String token = jwtUtil.generateToken(user.getEmail(), user.getRoles());
+                String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRoles());
                 return ResponseEntity.ok(token);
             }
 
@@ -328,7 +328,7 @@ public class AuthController {
 
         // Generar el nuevo JWT Definivo con el claim "roles" fijado únicamente al rol seleccionado
         // y con un claim "token_type" = "auth_role"
-        String newToken = jwtUtil.generateTokenForRole(user.getEmail(), request.getRole());
+        String newToken = jwtUtil.generateTokenForRole(user.getId(), user.getEmail(), request.getRole());
 
         // Crear el JSON de respuesta tal como fue solicitado (anidando token y Role con sus permisos)
         Map<String, Object> response = Map.of(

@@ -8,28 +8,25 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+/** Servicio de gestión de roles y permisos. */
 @Service
 @RequiredArgsConstructor
 public class RoleService {
 
     private final RoleRepository roleRepository;
 
-    // Obtener todos los roles
     public List<Role> getAll() {
         return roleRepository.findAll();
     }
 
-    // Obtener rol por id
     public Optional<Role> getById(String id) {
         return roleRepository.findById(id);
     }
 
-    // Obtener rol por nombre
     public Optional<Role> getByNombre(String name) {
-        return roleRepository.findByNombre((name));
+        return roleRepository.findByNombre(name);
     }
 
-    // Crear rol
     public Role create(Role role) {
         if (roleRepository.existsByNombre(role.getNombre())) {
             throw new RuntimeException("Ya existe un rol con ese nombre");
@@ -37,7 +34,6 @@ public class RoleService {
         return roleRepository.save(role);
     }
 
-    // Actualizar rol
     public Role update(String id, Role role) {
         Role existing = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
@@ -48,7 +44,6 @@ public class RoleService {
         return roleRepository.save(existing);
     }
 
-    // Eliminar rol
     public void delete(String id) {
         if (!roleRepository.existsById(id)) {
             throw new RuntimeException("Rol no encontrado");

@@ -10,6 +10,7 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.List;
 
+/** Utilidad para generación, validación y lectura de tokens JWT. */
 @Component
 public class JwtUtil {
 
@@ -17,38 +18,36 @@ public class JwtUtil {
     private String secret;
 
     @Value("${jwt.expiration:3600000}")
-    private long expiration; // 1 hora en milisegundos por defecto
+    private long expiration;
 
-    // Genera la clave a partir del secret del .env
     private SecretKey getKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    // GENERAR token general (después del login/2FA)
-    public String generateToken(String email, List<String> roles) {
-        return Jwts.builder()
-                .subject(email)                          // quien es el usuario
-                .claim("roles", roles)                   // sus roles dentro del token
-                .claim("token_type", "general")          // para diferenciar de auth_role
-                .issuedAt(new Date())                    // cuándo se creó
-                .expiration(new Date(System.currentTimeMillis() + expiration)) // cuándo vence
-                .signWith(getKey())                      // firma con HMAC
-                .compact();
-    }
-
-    // GENERAR token definitivo (después de seleccionar rol)
-    public String generateTokenForRole(String email, String role) {
+    public String generateToken(String userId, String email, List<String> roles) {
         return Jwts.builder()
                 .subject(email)
-                .claim("roles", List.of(role))           // solo el rol activo en sesión
-                .claim("token_type", "auth_role")        // token definitivo
+                .claim("user_id", userId)
+                .claim("roles", roles)
+                .claim("token_type", "general")
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getKey())
                 .compact();
     }
 
-    // VALIDAR token
+    public String generateTokenForRole(String userId, String email, String role) {
+        return Jwts.builder()
+                .subject(email)
+                .claim("user_id", userId)
+                .claim("roles", List.of(role))
+                .claim("token_type", "auth_role")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getKey())
+                .compact();
+    }
+
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
@@ -57,17 +56,20 @@ public class JwtUtil {
                     .parseSignedClaims(token);
             return true;
         } catch (Exception e) {
-            return false; // token inválido, expirado o manipulado
+            return false;
         }
     }
 
-    // LEER datos del token
     public String getEmailFromToken(String token) {
         return getClaims(token).getSubject();
     }
 
     public String getTokenTypeFromToken(String token) {
         return getClaims(token).get("token_type", String.class);
+    }
+
+    public String getUserIdFromToken(String token) {
+        return getClaims(token).get("user_id", String.class);
     }
 
     @SuppressWarnings("unchecked")
