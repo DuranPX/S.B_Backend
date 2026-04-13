@@ -1,7 +1,9 @@
 package com.SBuses.demo.Controllers;
 
+import com.SBuses.demo.DTOs.SetPasswordRequest;
 import com.SBuses.demo.Models.User;
 import com.SBuses.demo.Service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -113,5 +115,37 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", e.getMessage()));
         }
+    }
+
+    /**
+     * GET /api/users/{id}/has-password
+     * Consulta si el usuario tiene contraseña propia.
+     */
+    @GetMapping("/{id}/has-password")
+    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    public ResponseEntity<?> hasPassword(@PathVariable String id) {
+        boolean hasPassword = userService.hasPassword(id);
+        return ResponseEntity.ok(Map.of("hasPassword", hasPassword));
+    }
+
+    /**
+     * POST /api/users/{id}/set-password
+     * Crea la contraseña para un usuario OAuth2.
+     */
+    @PostMapping("/{id}/set-password")
+    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    public ResponseEntity<?> setPassword(
+            @PathVariable String id,
+            @Valid @RequestBody SetPasswordRequest request) {
+
+        boolean updated = userService.setPassword(id, request.getPassword());
+
+        if (!updated) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body("Usuario no encontrado");
+        }
+
+        return ResponseEntity.ok("Contraseña creada exitosamente");
     }
 }
