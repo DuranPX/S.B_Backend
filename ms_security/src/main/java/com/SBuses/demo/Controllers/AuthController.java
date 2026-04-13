@@ -11,12 +11,14 @@ import com.SBuses.demo.Service.RecaptchaService;
 import com.SBuses.demo.Service.RoleService;
 import com.SBuses.demo.Service.TwoFactorService;
 import com.SBuses.demo.Service.UserService;
+import com.SBuses.demo.Service.SessionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -38,6 +40,9 @@ public class AuthController {
     @Autowired
     private RecaptchaService recaptchaService;
 
+    @Autowired
+    private SessionService sessionService;
+
     /**
      * POST /auth/register
      * Recibe los datos del formulario, valida y crea el usuario
@@ -49,7 +54,14 @@ public class AuthController {
         if (!recaptchaService.validate(request.getRecaptchaToken())) {
             return ResponseEntity
                     .status(HttpStatus.FORBIDDEN)
-                    .body("Verificación reCAPTCHA fallida. Intenta de nuevo.");
+                    .body(Map.of("error", "Verificación reCAPTCHA fallida. Intenta de nuevo."));
+        }
+
+        // Validar que las contraseñas coincidan
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Las contraseñas no coinciden."));
         }
 
         User newUser = userService.validateRegister(
@@ -64,7 +76,7 @@ public class AuthController {
         if (newUser == null) {
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)
-                    .body("El email ya está registrado");
+                    .body(Map.of("error", "El email ya está registrado"));
         }
 
         userService.create(newUser);
@@ -72,7 +84,7 @@ public class AuthController {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body("Usuario creado. Se envió un código de verificación a tu correo.");
+                .body(Map.of("message", "Usuario creado. Se envió un código de verificación a tu correo."));
     }
 
     /**
@@ -86,7 +98,7 @@ public class AuthController {
         if (!recaptchaService.validate(request.getRecaptchaToken())) {
             return ResponseEntity
                     .status(HttpStatus.FORBIDDEN)
-                    .body("Verificación reCAPTCHA fallida. Intenta de nuevo.");
+                    .body(Map.of("error", "Verificación reCAPTCHA fallida. Intenta de nuevo."));
         }
 
         String resultado = userService.login(request.getEmail(), request.getPassword());
@@ -94,19 +106,19 @@ public class AuthController {
         if (resultado == null) {
             return ResponseEntity
                     .status(HttpStatus.UNAUTHORIZED)
-                    .body("Credenciales incorrectas");
+                    .body(Map.of("error", "Email o contraseña incorrectos"));
         }
 
         if (resultado.equals("INACTIVO")) {
             return ResponseEntity
                     .status(HttpStatus.FORBIDDEN)
-                    .body("Cuenta no activada. Revisa tu correo.");
+                    .body(Map.of("error", "Cuenta no activada. Revisa tu correo."));
         }
 
         twoFactorService.sendCode(request.getEmail(), "LOGIN");
 
         return ResponseEntity
-                .ok("Credenciales correctas. Se envió un código 2FA a tu correo.");
+                .ok(Map.of("message", "Credenciales correctas. Se envió un código 2FA a tu correo."));
     }
 
     // ENVIAR código 2FA
@@ -124,7 +136,7 @@ public class AuthController {
         if (email == null || proposito == null) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body("Se requiere email y proposito");
+                    .body(Map.of("error", "Se requiere email y proposito"));
         }
 
         boolean enviado = twoFactorService.sendCode(email, proposito);
@@ -132,11 +144,11 @@ public class AuthController {
         if (!enviado) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
-                    .body("No existe un usuario con ese email");
+                    .body(Map.of("error", "No existe un usuario con ese email"));
         }
 
         return ResponseEntity
-                .ok("Código enviado al correo " + email);
+                .ok(Map.of("message", "Código enviado al correo " + email));
     }
 
     // VERIFICAR código 2FA
@@ -156,7 +168,7 @@ public class AuthController {
         if (email == null || codigo == null) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body("Se requiere email y codigo");
+                    .body(Map.of("error", "Se requiere email y codigo"));
         }
 
         TwoFactorService.VerificationResult result = twoFactorService.verifyCode(email, codigo);
@@ -167,37 +179,45 @@ public class AuthController {
                 // Buscar usuario para obtener sus roles y generar JWT
                 User user = userService.findByEmail(email).orElse(null);
                 String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRoles());
-                return ResponseEntity.ok(token);
+
+                // Crear sesión (invalida sesiones previas → sesión única)
+                sessionService.createSession(token);
+
+                return ResponseEntity.ok(Map.of("token", token));
             }
 
             case SUCCESS_REGISTER -> {
                 // Activar la cuenta del usuario
                 userService.activateUser(email);
-                return ResponseEntity.ok("Cuenta activada exitosamente. Ya puedes iniciar sesión.");
+                return ResponseEntity.ok(Map.of("message", "Cuenta activada exitosamente. Ya puedes iniciar sesión."));
             }
 
             case INVALID_CODE -> {
+                int remaining = twoFactorService.getRemainingAttempts(email);
+                Map<String, Object> errorBody = new HashMap<>();
+                errorBody.put("error", "Código incorrecto. Intentos restantes: " + remaining);
+                errorBody.put("intentosRestantes", remaining);
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)
-                        .body("Código incorrecto");
+                        .body(errorBody);
             }
 
             case EXPIRED -> {
                 return ResponseEntity
                         .status(HttpStatus.UNAUTHORIZED)
-                        .body("El código ha expirado. Solicita uno nuevo.");
+                        .body(Map.of("error", "El código ha expirado. Solicita uno nuevo."));
             }
 
             case MAX_ATTEMPTS -> {
                 return ResponseEntity
                         .status(HttpStatus.TOO_MANY_REQUESTS)     // 429
-                        .body("Demasiados intentos fallidos. Solicita un nuevo código.");
+                        .body(Map.of("error", "Demasiados intentos fallidos. Solicita un nuevo código."));
             }
 
             default -> {
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
-                        .body("No existe un código activo para este email.");
+                        .body(Map.of("error", "No existe un código activo para este email."));
             }
         }
     }
@@ -207,28 +227,33 @@ public class AuthController {
     /**
      * POST /auth/recovery/send
      * Envía el código de recuperación al email del usuario.
+     * IMPORTANTE: Siempre retorna respuesta genérica para prevenir enumeración de emails.
      */
     @PostMapping("/recovery/send")
     public ResponseEntity<?> sendRecovery(@RequestBody Map<String, String> body) {
 
         String email = body.get("email");
+        String recaptchaToken = body.get("recaptchaToken");
 
         if (email == null || email.isBlank()) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
-                    .body("El email es obligatorio");
+                    .body(Map.of("error", "El email es obligatorio"));
         }
 
-        boolean enviado = twoFactorService.sendRecoveryCode(email);
-
-        if (!enviado) {
+        // Validar reCAPTCHA antes de procesar
+        if (recaptchaToken == null || !recaptchaService.validate(recaptchaToken)) {
             return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body("No existe un usuario con ese email");
+                    .status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Verificación reCAPTCHA fallida. Intenta de nuevo."));
         }
 
+        // Ejecutar envío (si el email no existe, simplemente no envía nada)
+        twoFactorService.sendRecoveryCode(email);
+
+        // SIEMPRE retornar respuesta genérica — NO revelar si el email existe o no
         return ResponseEntity
-                .ok("Se envió un código de recuperación a " + email);
+                .ok(Map.of("message", "Si el email existe en el sistema, recibirás instrucciones de recuperación."));
     }
 
     /**
@@ -242,7 +267,7 @@ public class AuthController {
         if (!recaptchaService.validate(request.getRecaptchaToken())) {
             return ResponseEntity
                     .status(HttpStatus.FORBIDDEN)
-                    .body("Verificación reCAPTCHA fallida. Intenta de nuevo.");
+                    .body(Map.of("error", "Verificación reCAPTCHA fallida. Intenta de nuevo."));
         }
 
         TwoFactorService.VerificationResult result =
@@ -255,29 +280,33 @@ public class AuthController {
                 if (!updated) {
                     return ResponseEntity
                             .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body("Error al actualizar la contraseña");
+                            .body(Map.of("error", "Error al actualizar la contraseña"));
                 }
-                return ResponseEntity.ok("Contraseña actualizada exitosamente");
+                return ResponseEntity.ok(Map.of("message", "Contraseña actualizada exitosamente"));
             }
             case INVALID_CODE -> {
+                int remaining = twoFactorService.getRemainingAttempts(request.getEmail());
+                Map<String, Object> errorBody = new HashMap<>();
+                errorBody.put("error", "Código incorrecto. Intentos restantes: " + remaining);
+                errorBody.put("intentosRestantes", remaining);
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)
-                        .body("Código incorrecto");
+                        .body(errorBody);
             }
             case EXPIRED -> {
                 return ResponseEntity
                         .status(HttpStatus.UNAUTHORIZED)
-                        .body("El código ha expirado. Solicita uno nuevo.");
+                        .body(Map.of("error", "El código ha expirado. Solicita uno nuevo."));
             }
             case MAX_ATTEMPTS -> {
                 return ResponseEntity
                         .status(HttpStatus.TOO_MANY_REQUESTS)
-                        .body("Demasiados intentos fallidos. Solicita un nuevo código.");
+                        .body(Map.of("error", "Demasiados intentos fallidos. Solicita un nuevo código."));
             }
             default -> {
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
-                        .body("No existe un código activo para este email.");
+                        .body(Map.of("error", "No existe un código activo para este email."));
             }
         }
     }
@@ -294,7 +323,7 @@ public class AuthController {
                                         @RequestHeader("Authorization") String tokenHeader) {
 
         if (tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token no proveído");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Token no proveído"));
         }
 
         String token = tokenHeader.substring(7);
@@ -302,33 +331,36 @@ public class AuthController {
         // El filtro JWT automáticamente invalida tokens incorrectos que llegan con Bearer en /auth
         // pero por seguridad manual lo extraemos
         if (!jwtUtil.validateToken(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido o manipulado");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Token inválido o manipulado"));
         }
 
         String email = jwtUtil.getEmailFromToken(token);
         User user = userService.findByEmail(email).orElse(null);
 
         if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado en la base de datos.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Usuario no encontrado en la base de datos."));
         }
 
         // Verificar si el usuario efectivamente tiene asignado el rol que está solicitando
         // El frontend envía el DTO con ej: {"role": "ADMIN"}
         if (!user.getRoles().contains(request.getRole())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("El usuario no tiene asignado el rol: " + request.getRole());
+                    .body(Map.of("error", "El usuario no tiene asignado el rol: " + request.getRole()));
         }
 
         // Obtener la información completa del Rol desde Mongo (que incluye la lista estructurada de permisos)
         Role roleData = roleService.getByNombre(request.getRole()).orElse(null);
         if (roleData == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("La estructura y configuración del rol solicitado no fue encontrada en el sistema.");
+                    .body(Map.of("error", "La estructura y configuración del rol solicitado no fue encontrada en el sistema."));
         }
 
-        // Generar el nuevo JWT Definivo con el claim "roles" fijado únicamente al rol seleccionado
+        // Generar el nuevo JWT Definitivo con el claim "roles" fijado únicamente al rol seleccionado
         // y con un claim "token_type" = "auth_role"
         String newToken = jwtUtil.generateTokenForRole(user.getId(), user.getEmail(), request.getRole());
+
+        // Crear/reemplazar sesión con el nuevo token definitivo (invalida la general anterior)
+        sessionService.createSession(newToken);
 
         // Crear el JSON de respuesta tal como fue solicitado (anidando token y Role con sus permisos)
         Map<String, Object> response = Map.of(
@@ -348,33 +380,33 @@ public class AuthController {
     public ResponseEntity<?> getMe(@RequestHeader("Authorization") String tokenHeader) {
 
         if (tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token no proveído");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Token no proveído"));
         }
 
         String token = tokenHeader.substring(7);
 
         if (!jwtUtil.validateToken(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido o manipulado");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Token inválido o manipulado"));
         }
 
         // Verificación de Seguridad CRÍTICA: Asegurarse de que el usuario envíe su "Token Definitivo",
         // no el token temporal.
         if (!"auth_role".equals(jwtUtil.getTokenTypeFromToken(token))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Acceso denegado. Se requiere un token de rol activo validado.");
+                    .body(Map.of("error", "Acceso denegado. Se requiere un token de rol activo validado."));
         }
 
         String email = jwtUtil.getEmailFromToken(token);
         User user = userService.findByEmail(email).orElse(null);
 
         if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Usuario no encontrado."));
         }
 
         // Extraer el rol activo de forma segura desde los Claims del JWT
         List<String> rolesEnToken = jwtUtil.getRolesFromToken(token);
         if (rolesEnToken == null || rolesEnToken.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("El token no contiene un rol asociado.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "El token no contiene un rol asociado."));
         }
         
         String rolActivo = rolesEnToken.get(0);
@@ -389,5 +421,31 @@ public class AuthController {
         );
         
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * POST /auth/logout
+     * Invalida la sesión activa del usuario en MongoDB.
+     * El token JWT deja de ser válido inmediatamente porque el JwtFilter
+     * verifica la sesión en cada petición.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String tokenHeader) {
+
+        if (tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Token no proveído"));
+        }
+
+        String token = tokenHeader.substring(7);
+
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Token inválido o expirado"));
+        }
+
+        // Invalidar la sesión en MongoDB → el token queda inutilizable
+        String jti = jwtUtil.getJtiFromToken(token);
+        sessionService.invalidateSession(jti);
+
+        return ResponseEntity.ok(Map.of("message", "Sesión cerrada exitosamente."));
     }
 }

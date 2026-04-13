@@ -36,6 +36,9 @@ public class RegisterRequest {
     @Size(max = 200, message = "La dirección no puede superar 200 caracteres")
     private String address;
 
+    @NotBlank(message = "La confirmación de contraseña es obligatoria")
+    private String confirmPassword;
+
     @NotBlank(message = "El token reCAPTCHA es obligatorio")
     private String recaptchaToken;
 }

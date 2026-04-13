@@ -27,6 +27,9 @@ public class UserService {
     @Autowired
     private RoleRepository roleRepository;
 
+    @Autowired
+    private GmailService gmailService;
+
     // Obtener todos los usuarios
     public List<User> find() {
         return userRepository.findAll();
@@ -40,6 +43,14 @@ public class UserService {
     // Obtener usuario por email
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    // Buscar usuarios por nombre o email (parcial, case-insensitive)
+    public List<User> search(String query) {
+        if (query == null || query.isBlank()) {
+            return userRepository.findAll();
+        }
+        return userRepository.searchByNameOrEmail(query.trim());
     }
 
     /**
@@ -105,18 +116,24 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    // Actualizar usuario
+    // Actualizar usuario (Null-safe para actualizaciones parciales)
     public User update(String id, User user) {
         User existing = userRepository.findById(id).orElse(null);
         if (existing != null) {
-            existing.setName(user.getName());
-            existing.setLastName(user.getLastName());
-            existing.setEmail(user.getEmail());
-            existing.setPhone(user.getPhone());
-            existing.setAddress(user.getAddress());
-            existing.setPhoto(user.getPhoto());
-            existing.setActivo(user.isActivo());
-            existing.setRoles(user.getRoles());
+            if (user.getName() != null && !user.getName().isBlank()) existing.setName(user.getName());
+            if (user.getLastName() != null && !user.getLastName().isBlank()) existing.setLastName(user.getLastName());
+            if (user.getEmail() != null && !user.getEmail().isBlank()) existing.setEmail(user.getEmail());
+            if (user.getPhone() != null && !user.getPhone().isBlank()) existing.setPhone(user.getPhone());
+            if (user.getAddress() != null && !user.getAddress().isBlank()) existing.setAddress(user.getAddress());
+            if (user.getPhoto() != null && !user.getPhoto().isBlank()) existing.setPhoto(user.getPhoto());
+            
+            // Solo actualizar activo si se envía explícitamente (se asume booleano en el body)
+            // existing.setActivo(user.isActivo()); // Comentado o condicional si fuera necesario
+            
+            if (user.getRoles() != null && !user.getRoles().isEmpty()) {
+                existing.setRoles(user.getRoles());
+            }
+            
             return userRepository.save(existing);
         }
         return null;
@@ -132,7 +149,7 @@ public class UserService {
         return false;
     }
 
-    // Asignar rol a usuario
+    // Asignar rol a usuario (con notificación por email)
     public User assignRole(String userId, String rolId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -150,10 +167,21 @@ public class UserService {
         }
 
         user.getRoles().add(rolId);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+
+        // Notificar al usuario por email del cambio de roles
+        try {
+            String html = gmailService.buildRoleChangeEmailHtml(
+                    user.getName(), rolId, "asignado");
+            gmailService.sendEmail(user.getEmail(), "Cambio en tus roles - Sistema de Buses", html);
+        } catch (Exception e) {
+            System.err.println("Error al enviar notificación de cambio de rol: " + e.getMessage());
+        }
+
+        return saved;
     }
 
-    // Quitar rol a usuario
+    // Quitar rol a usuario (con notificación por email)
     public User removeRole(String userId, String rolId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -163,6 +191,44 @@ public class UserService {
         }
 
         user.getRoles().remove(rolId);
+        User saved = userRepository.save(user);
+
+        // Notificar al usuario por email del cambio de roles
+        try {
+            String html = gmailService.buildRoleChangeEmailHtml(
+                    user.getName(), rolId, "removido");
+            gmailService.sendEmail(user.getEmail(), "Cambio en tus roles - Sistema de Buses", html);
+        } catch (Exception e) {
+            System.err.println("Error al enviar notificación de cambio de rol: " + e.getMessage());
+        }
+
+        return saved;
+    }
+
+    // Desvincular cuenta OAuth2 externa (Google, Microsoft, GitHub)
+    public User unlinkAuthExternal(String userId, String provider) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        if (user.getAuthExternals() == null || user.getAuthExternals().isEmpty()) {
+            throw new RuntimeException("El usuario no tiene cuentas externas vinculadas");
+        }
+
+        boolean removed = user.getAuthExternals().removeIf(
+                ext -> ext.getProveedor().equalsIgnoreCase(provider));
+
+        if (!removed) {
+            throw new RuntimeException("No se encontró vinculación con el proveedor: " + provider);
+        }
+
+        // Si el usuario no tiene contraseña local y desvincula su única cuenta externa, bloquear
+        boolean hasPassword = user.getPassword() != null && !user.getPassword().isBlank();
+        boolean hasOtherExternals = !user.getAuthExternals().isEmpty();
+        if (!hasPassword && !hasOtherExternals) {
+            throw new RuntimeException(
+                    "No puedes desvincular tu única forma de acceso. Establece una contraseña primero.");
+        }
+
         return userRepository.save(user);
     }
 

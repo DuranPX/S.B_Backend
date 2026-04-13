@@ -28,4 +28,6 @@ public class TwoFactorCode {
     private int intentos;          // cuántos intentos fallidos lleva
 
     private String proposito;      // "REGISTRO" o "LOGIN"
+
+    private boolean used;          // true si ya fue validado (historial)
 }

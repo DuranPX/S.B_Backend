@@ -178,4 +178,61 @@ public class GmailService {
             </html>
             """.formatted(userName, codigo);
     }
+
+    // HTML del correo de notificación de cambio de rol
+    public String buildRoleChangeEmailHtml(String userName, String roleName, String action) {
+        String actionColor = action.equals("asignado") ? "#1a73e8" : "#d93025";
+        String actionIcon = action.equals("asignado") ? "✅" : "🔄";
+        String actionVerb = action.equals("asignado") ? "se te ha asignado" : "se te ha removido";
+        String actionPrep = action.equals("asignado") ? "" : " de";
+
+        return """
+            <!DOCTYPE html>
+            <html lang="es">
+            <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin:0; padding:0;">
+                <div style="max-width:600px; margin:40px auto; background:#fff;
+                            border-radius:8px; overflow:hidden;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+
+                    <!-- Header -->
+                    <div style="background:%s; padding:30px; text-align:center;">
+                        <h1 style="color:#fff; margin:0; font-size:22px;">
+                            %s Cambio de Rol
+                        </h1>
+                        <p style="color:rgba(255,255,255,0.8); margin:8px 0 0 0; font-size:14px;">
+                            Sistema de Buses Inteligentes
+                        </p>
+                    </div>
+
+                    <!-- Cuerpo -->
+                    <div style="padding:30px; color:#333;">
+                        <p>Hola <b>%s</b>,</p>
+                        <p>Te informamos que %s el rol%s:</p>
+
+                        <div style="font-size:24px; font-weight:bold;
+                                    color:%s; text-align:center; padding:20px;
+                                    background:#f0f4ff; border-radius:8px; margin:20px 0;">
+                            %s
+                        </div>
+
+                        <p>Este cambio ya está activo en tu cuenta. La próxima vez que inicies sesión,
+                           tus permisos reflejarán esta actualización.</p>
+
+                        <div style="background:#e8f5e9; border-left:4px solid #4caf50;
+                                    padding:12px; border-radius:4px; margin:20px 0;">
+                            💡 Si no esperabas este cambio, contacta al administrador del sistema.
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="background:#f4f4f4; padding:20px; text-align:center;
+                                font-size:12px; color:#888;">
+                        <p>Este es un correo automático, por favor no respondas.</p>
+                        <p>&copy; 2025 Sistema de Buses Inteligentes.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """.formatted(actionColor, actionIcon, userName, actionVerb, actionPrep, actionColor, roleName);
+    }
 }

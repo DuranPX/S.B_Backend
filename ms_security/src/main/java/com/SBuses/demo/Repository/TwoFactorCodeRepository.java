@@ -9,7 +9,7 @@ import java.util.Optional;
 @Repository
 public interface TwoFactorCodeRepository extends MongoRepository<TwoFactorCode, String> {
 
-    Optional<TwoFactorCode> findByEmail(String email);
+    Optional<TwoFactorCode> findByEmailAndUsedFalse(String email);
 
     void deleteByEmail(String email);
 }

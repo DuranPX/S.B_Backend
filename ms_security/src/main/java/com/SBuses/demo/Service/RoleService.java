@@ -2,6 +2,7 @@ package com.SBuses.demo.Service;
 
 import com.SBuses.demo.Models.Role;
 import com.SBuses.demo.Repository.RoleRepository;
+import com.SBuses.demo.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,7 @@ import java.util.Optional;
 public class RoleService {
 
     private final RoleRepository roleRepository;
+    private final UserRepository userRepository;
 
     public List<Role> getAll() {
         return roleRepository.findAll();
@@ -45,9 +47,16 @@ public class RoleService {
     }
 
     public void delete(String id) {
-        if (!roleRepository.existsById(id)) {
-            throw new RuntimeException("Rol no encontrado");
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+
+        // Validar que no haya usuarios con este rol asignado antes de eliminar
+        long usersWithRole = userRepository.countByRolesContaining(role.getNombre());
+        if (usersWithRole > 0) {
+            throw new RuntimeException(
+                    "No se puede eliminar: " + usersWithRole + " usuario(s) tienen el rol '" + role.getNombre() + "' asignado.");
         }
+
         roleRepository.deleteById(id);
     }
 }
