@@ -12,28 +12,22 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(collection = "sessions")
-public class Session {
+@Document(collection = "recovery_tokens")
+public class RecoveryToken {
 
     @Id
     private String id;
 
-    // ID del usuario al que pertenece la sesión
-    private String userId;
-
-    // JWT ID único (claim "jti" del access token)
     @Indexed(unique = true)
-    private String jti;
+    private String email;
 
-    // Hash SHA-256 del refresh token (nunca el valor plano)
-    private String refreshTokenHash;
+    private String code;
 
-    // Estado de la sesión
-    private boolean isActive;
+    private boolean used;
 
-    // Fecha de expiración
     private Date expiresAt;
 
-    // Fecha de creación
+    private int attempts;
+
     private Date createdAt;
 }

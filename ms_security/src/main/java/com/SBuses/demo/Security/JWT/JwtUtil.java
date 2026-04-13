@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.UUID;
 import java.util.List;
 
 /** Utilidad para generación, validación y lectura de tokens JWT. */
@@ -26,6 +27,7 @@ public class JwtUtil {
 
     public String generateToken(String userId, String email, List<String> roles) {
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(email)
                 .claim("user_id", userId)
                 .claim("roles", roles)
@@ -38,6 +40,7 @@ public class JwtUtil {
 
     public String generateTokenForRole(String userId, String email, String role) {
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(email)
                 .claim("user_id", userId)
                 .claim("roles", List.of(role))
@@ -70,6 +73,10 @@ public class JwtUtil {
 
     public String getUserIdFromToken(String token) {
         return getClaims(token).get("user_id", String.class);
+    }
+
+    public String getJtiFromToken(String token) {
+        return getClaims(token).getId();
     }
 
     @SuppressWarnings("unchecked")

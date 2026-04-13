@@ -34,4 +34,11 @@ public class MicrosoftOAuth2UserInfo extends OAuth2UserInfo {
         }
         return (String) attributes.get("preferred_username");
     }
+
+    @Override
+    public String getPhoto() {
+        // Microsoft no incluye foto directamente en los atributos del token.
+        // Se necesitaría una llamada adicional a Microsoft Graph API: GET /me/photo/$value
+        return null;
+    }
 }

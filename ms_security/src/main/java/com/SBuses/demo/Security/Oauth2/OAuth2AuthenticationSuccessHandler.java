@@ -8,6 +8,7 @@ import com.SBuses.demo.Repository.UserRepository;
 import com.SBuses.demo.Security.JWT.JwtUtil;
 import com.SBuses.demo.Security.Oauth2.Provider.OAuth2UserInfo;
 import com.SBuses.demo.Security.Oauth2.Provider.OAuth2UserInfoFactory;
+import com.SBuses.demo.Service.SessionService;
 import com.SBuses.demo.Service.TwoFactorService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,6 +42,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     @Autowired
     private TwoFactorService twoFactorService;
 
+    @Autowired
+    private SessionService sessionService;
+
     @Value("${oauth2.redirect.url:http://localhost:5000/auth/success}")
     private String redirectUrl;
 
@@ -61,10 +65,15 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         String name = userInfo.getName();
         String lastName = userInfo.getLastName();
         String providerId = userInfo.getId();
+        String photo = userInfo.getPhoto();
 
+        // Si el email es null (ej: GitHub con email privado), redirigir a completar perfil
         if (email == null) {
-            // Manejo de error si el email no es provisto
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Email not found from OAuth2 provider");
+            String incompleteUrl = redirectUrl.replace("/auth/success", "/auth/complete-profile")
+                    + "?provider=" + provider
+                    + "&name=" + (name != null ? name : "")
+                    + "&requireEmail=true";
+            getRedirectStrategy().sendRedirect(request, response, incompleteUrl);
             return;
         }
 
@@ -80,10 +89,16 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             user.setLastName(lastName != null ? lastName : "");
             user.setEmail(email);
             user.setPassword(null);
+            user.setPhoto(photo); // Guardar foto del proveedor OAuth2
             user.setActivo(true);
             user.setRegistrationDate(new Date());
             user.setRoles(new ArrayList<>(List.of(rolCiudadano.getNombre())));
             user.setAuthExternals(new ArrayList<>());
+        } else {
+            // Si el usuario existe pero no tiene foto, actualizar con la del proveedor
+            if ((user.getPhoto() == null || user.getPhoto().isBlank()) && photo != null) {
+                user.setPhoto(photo);
+            }
         }
 
         // Revisar y asociar AuthExternal si no existe para este proveedor
@@ -117,6 +132,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             targetUrl = redirectUrl + "?email=" + email + "&require2fa=true";
         } else {
             String token = jwtUtil.generateToken(user.getId(), email, user.getRoles());
+            // Crear sesión (invalida sesiones previas → sesión única)
+            sessionService.createSession(token);
             targetUrl = redirectUrl + "?token=" + token;
         }
 

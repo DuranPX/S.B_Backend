@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /** CRUD de usuarios. ADMIN tiene acceso total, usuarios autenticados acceden a su propio perfil. */
 @RestController
@@ -22,6 +23,17 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<User>> getAll() {
         return ResponseEntity.ok(userService.find());
+    }
+
+    /**
+     * GET /api/users/search?q=texto
+     * Busca usuarios por nombre, apellido o email (parcial, case-insensitive).
+     * Solo accesible por ADMIN.
+     */
+    @GetMapping("/search")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<User>> search(@RequestParam(name = "q", required = false, defaultValue = "") String query) {
+        return ResponseEntity.ok(userService.search(query));
     }
 
     @GetMapping("/{id}")
@@ -81,5 +93,25 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<User> removeRole(@PathVariable String id, @PathVariable String rolId) {
         return ResponseEntity.ok(userService.removeRole(id, rolId));
+    }
+
+    /**
+     * DELETE /api/users/{id}/auth-external/{provider}
+     * Desvincula una cuenta OAuth2 externa (google, microsoft, github).
+     * El usuario solo puede desvincular sus propias cuentas. ADMIN puede desvincular cualquiera.
+     */
+    @DeleteMapping("/{id}/auth-external/{provider}")
+    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    public ResponseEntity<?> unlinkAuthExternal(@PathVariable String id, @PathVariable String provider) {
+        try {
+            User updated = userService.unlinkAuthExternal(id, provider);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Cuenta de " + provider + " desvinculada exitosamente.",
+                    "user", updated
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 }
