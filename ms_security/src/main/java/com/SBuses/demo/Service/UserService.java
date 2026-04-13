@@ -255,4 +255,26 @@ public class UserService {
         userRepository.save(user);
         return true;
     }
+
+    /**
+     * Verifica si el usuario tiene contraseña propia.
+     * Los usuarios OAuth2 no tienen password en la BD.
+     */
+    public boolean hasPassword(String id) {
+        User user = userRepository.findById(id).orElse(null);
+        if (user == null) return false;
+        return user.getPassword() != null && !user.getPassword().isBlank();
+    }
+
+    /**
+     * Crea o actualiza la contraseña del usuario.
+     * Reutiliza el mismo EncryptionService del registro — BCrypt.
+     */
+    public boolean setPassword(String id, String newPassword) {
+        User user = userRepository.findById(id).orElse(null);
+        if (user == null) return false;
+        user.setPassword(encryptionService.encryptPassword(newPassword));
+        userRepository.save(user);
+        return true;
+    }
 }
