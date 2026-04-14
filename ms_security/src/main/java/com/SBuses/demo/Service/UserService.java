@@ -14,7 +14,7 @@ import java.util.Optional;
 
 @Service
 public class UserService {
-
+    @SuppressWarnings("unused")
     @Autowired
     private JwtUtil jwtUtil;
 
