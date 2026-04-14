@@ -15,6 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.config.Customizer;
 import org.springframework.security.web.firewall.HttpFirewall;
 import org.springframework.security.web.firewall.StrictHttpFirewall;
+import com.SBuses.demo.Security.Oauth2.OAuth2AuthenticationSuccessHandler;
 
 /** Configuración central de seguridad: Firewall, FilterChain, OAuth2 y Method Security. */
 @Configuration
@@ -26,7 +27,7 @@ public class SegurityConfig {
     private JwtFilter jwtFilter;
 
     @Autowired
-    private com.SBuses.demo.Security.Oauth2.OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
     @Bean
     public HttpFirewall strictHttpFirewall() {

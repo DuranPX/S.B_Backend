@@ -1,7 +1,10 @@
 package com.SBuses.demo.Controllers;
 
+import com.SBuses.demo.DTOs.ChangePasswordRequest;
 import com.SBuses.demo.DTOs.SetPasswordRequest;
 import com.SBuses.demo.Models.User;
+import com.SBuses.demo.Repository.UserRepository;
+import com.SBuses.demo.Service.EncryptionService;
 import com.SBuses.demo.Service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,13 +16,22 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/** CRUD de usuarios. ADMIN tiene acceso total, usuarios autenticados acceden a su propio perfil. */
+/**
+ * CRUD de usuarios. ADMIN tiene acceso total, usuarios autenticados acceden a
+ * su propio perfil.
+ */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private EncryptionService encryptionService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -34,7 +46,8 @@ public class UserController {
      */
     @GetMapping("/search")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<User>> search(@RequestParam(name = "q", required = false, defaultValue = "") String query) {
+    public ResponseEntity<List<User>> search(
+            @RequestParam(name = "q", required = false, defaultValue = "") String query) {
         return ResponseEntity.ok(userService.search(query));
     }
 
@@ -100,7 +113,8 @@ public class UserController {
     /**
      * DELETE /api/users/{id}/auth-external/{provider}
      * Desvincula una cuenta OAuth2 externa (google, microsoft, github).
-     * El usuario solo puede desvincular sus propias cuentas. ADMIN puede desvincular cualquiera.
+     * El usuario solo puede desvincular sus propias cuentas. ADMIN puede
+     * desvincular cualquiera.
      */
     @DeleteMapping("/{id}/auth-external/{provider}")
     @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
@@ -109,8 +123,7 @@ public class UserController {
             User updated = userService.unlinkAuthExternal(id, provider);
             return ResponseEntity.ok(Map.of(
                     "message", "Cuenta de " + provider + " desvinculada exitosamente.",
-                    "user", updated
-            ));
+                    "user", updated));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", e.getMessage()));
@@ -147,5 +160,36 @@ public class UserController {
         }
 
         return ResponseEntity.ok("Contraseña creada exitosamente");
+    }
+
+    /**
+     * PUT /api/users/{id}/change-password
+     * Cambia la contraseña de un usuario.
+     */
+    @PutMapping("/{id}/change-password")
+    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    public ResponseEntity<?> changePassword(
+            @PathVariable String id,
+            @RequestBody ChangePasswordRequest request) {
+
+        // Buscar usuario por ID
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Validar contraseña actual
+        if (!encryptionService.checkPassword(request.getCurrentPassword(), user.getPassword())) {
+            throw new RuntimeException("La contraseña actual es incorrecta");
+        }
+
+        // Validar nueva contraseña
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Las contraseñas no coinciden");
+        }
+
+        // Encriptar y guardar nueva contraseña
+        user.setPassword(encryptionService.encryptPassword(request.getNewPassword()));
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Contraseña actualizada correctamente");
     }
 }
