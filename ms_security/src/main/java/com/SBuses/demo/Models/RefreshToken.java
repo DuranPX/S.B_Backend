@@ -31,7 +31,7 @@ public class RefreshToken {
     // true cuando fue revocado (logout o rotación)
     private boolean revoked;
 
-    // Fecha de expiración — TTL index configurado en MongoDB (recomendado: 7 días)
+    // Fecha de expiración
     private Date expiresAt;
 
     // Fecha de creación
