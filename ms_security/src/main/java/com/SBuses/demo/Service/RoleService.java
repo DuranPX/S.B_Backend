@@ -3,6 +3,7 @@ package com.SBuses.demo.Service;
 import com.SBuses.demo.Models.Role;
 import com.SBuses.demo.Repository.RoleRepository;
 import com.SBuses.demo.Repository.UserRepository;
+import com.SBuses.demo.Security.PermissionValidationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ public class RoleService {
 
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
+    private final PermissionValidationService permissionValidationService;
 
     public List<Role> getAll() {
         return roleRepository.findAll();
@@ -33,7 +35,9 @@ public class RoleService {
         if (roleRepository.existsByNombre(role.getNombre())) {
             throw new RuntimeException("Ya existe un rol con ese nombre");
         }
-        return roleRepository.save(role);
+        Role saved = roleRepository.save(role);
+        permissionValidationService.refreshCache();
+        return saved;
     }
 
     public Role update(String id, Role role) {
@@ -43,7 +47,9 @@ public class RoleService {
         existing.setDescripcion(role.getDescripcion());
         existing.setActivo(role.isActivo());
         existing.setPermisos(role.getPermisos());
-        return roleRepository.save(existing);
+        Role saved = roleRepository.save(existing);
+        permissionValidationService.refreshCache();
+        return saved;
     }
 
     public void delete(String id) {
@@ -58,5 +64,6 @@ public class RoleService {
         }
 
         roleRepository.deleteById(id);
+        permissionValidationService.refreshCache();
     }
 }
