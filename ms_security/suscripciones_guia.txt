@@ -1,0 +1,37 @@
+GUIA PASO A PASO: SUSCRIPCION A SISTEMA DE PERMISOS DINAMICOS
+
+1. CONTROLADORES (Rutas HTTP API)
+Para proteger un endpoint en un controlador:
+Paso 1: Agregar la anotacion @PreAuthorize del paquete org.springframework.security.access.prepost.PreAuthorize en el metodo correspondiente.
+Paso 2: Utilizar la expresion de llamada al servicio inyectado y especificar el modulo y la accion en la cadena de texto de la evaluacion.
+Formato: @PreAuthorize("@permissionValidationService.hasPermission(authentication, '<nombre_modulo>', '<accion>')")
+Ejemplo (Lectura): @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'rutas', 'leer')")
+Ejemplo (Validacion de propiedad combinada): @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'editar') or #id == principal.id")
+
+2. SERVICIOS Y REPOSITORIOS (Acceso a Base de Datos y logica interna)
+La seguridad a nivel de metodo tambien puede integrarse en servicios y evitar llamadas a repositorios:
+Paso 1: Agregar la anotacion @PreAuthorize encima del metodo del servicio (Service) de manera analoga al controlador.
+Paso 2 (Alternativa imperativa sin anotaciones): Inyectar PermissionValidationService directamente en tu servicio de negocio.
+Paso 3: Antes del acceso al repositorio, verificar el permiso de forma manual recuperando el usuario en el contexto y usando el bloque if.
+Ejemplo manual: 
+Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+if (!permissionValidationService.hasPermission(auth, "empresas", "eliminar")) {
+    throw new AccessDeniedException("Falta de privilegios");
+}
+
+3. FILTROS JWT E INTERCEPTORES (Validacion Global de Request)
+Para rechazar peticiones estricta o globalmente antes de que un controlador sea invocado:
+Paso 1: En las clases como JwtFilter, inyectar el PermissionValidationService.
+Paso 2: Despues de configurar el Authentication y guardarlo en el SecurityContextHolder, extraer la ruta URL desde el HttpServletRequest.
+Paso 3: Validar e impedir el progreso del Servlet o Chain si un contexto critico falta. Sin embargo, se recomienda delegar esto a nivel Controlador donde la expresion de acceso esta mejor definida.
+Paso 4: Si se aplica, configurar response.setStatus(HttpServletResponse.SC_FORBIDDEN) e interrumpir la llamada de filterChain.doFilter.
+
+4. ACTUALIZACION DE CACHE EN MODIFICACION DE ROLES O GUARDIANES
+Para mantener los permisos actualizados en memoria despues de aplicar un cambio:
+Paso 1: Identificar el codigo, entidad o Proveedor OAuth donde se crean, actualizan, editan o eliminan objectos tipo "Role" en MongoDB.
+Paso 2: Inyectar PermissionValidationService en dicha clase.
+Paso 3: Inmediatamente depues de ejecutar el metodo roleRepository.save() o delete(), llamar a la instancia del cache.
+Paso 4: Ejecutar "permissionValidationService.refreshCache();" garantizando una subscripcion e hidratado de memoria en toda la red de Spring simultaneamente.
+
+
+Esto es para la sustentación Individual
