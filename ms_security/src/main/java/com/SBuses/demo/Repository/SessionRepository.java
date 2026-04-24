@@ -15,6 +15,9 @@ public interface SessionRepository extends MongoRepository<Session, String> {
     // Buscar sesión por JTI
     Optional<Session> findByJti(String jti);
 
+    // Buscar sesión por hash del refresh token
+    Optional<Session> findByRefreshTokenHash(String refreshTokenHash);
+
     // Invalidar todas las sesiones activas de un usuario (forzar sesión única)
     void deleteByUserId(String userId);
 }

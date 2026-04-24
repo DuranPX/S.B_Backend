@@ -1,9 +1,6 @@
 package com.SBuses.demo.Controllers;
 
-import com.SBuses.demo.DTOs.LoginRequest;
-import com.SBuses.demo.DTOs.RegisterRequest;
-import com.SBuses.demo.DTOs.ResetPasswordRequest;
-import com.SBuses.demo.DTOs.SelectRoleRequest;
+import com.SBuses.demo.DTOs.*;
 import com.SBuses.demo.Models.Role;
 import com.SBuses.demo.Models.User;
 import com.SBuses.demo.Security.JWT.JwtUtil;
@@ -23,7 +20,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/auth")
-public class AuthController {
+public class    AuthController {
 
     @Autowired
     private UserService userService;
@@ -180,10 +177,10 @@ public class AuthController {
                 User user = userService.findByEmail(email).orElse(null);
                 String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRoles());
 
-                // Crear sesión (invalida sesiones previas → sesión única)
-                sessionService.createSession(token);
+                // Crear sesión y obtener par de tokens (Access + Refresh)
+                JwtResponse response = sessionService.createSession(token);
 
-                return ResponseEntity.ok(Map.of("token", token));
+                return ResponseEntity.ok(response);
             }
 
             case SUCCESS_REGISTER -> {
@@ -359,16 +356,37 @@ public class AuthController {
         // y con un claim "token_type" = "auth_role"
         String newToken = jwtUtil.generateTokenForRole(user.getId(), user.getEmail(), request.getRole());
 
-        // Crear/reemplazar sesión con el nuevo token definitivo (invalida la general anterior)
-        sessionService.createSession(newToken);
+        // Crear/reemplazar sesión con el nuevo token definitivo (obtiene par Access + Refresh)
+        JwtResponse jwtResponse = sessionService.createSession(newToken);
 
-        // Crear el JSON de respuesta tal como fue solicitado (anidando token y Role con sus permisos)
+        // Crear el JSON de respuesta tal como fue solicitado (incluyendo ahora el refreshToken)
         Map<String, Object> response = Map.of(
-                "token", newToken,
+                "token", jwtResponse.getToken(),
+                "refreshToken", jwtResponse.getRefreshToken(),
                 "role", roleData
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * POST /auth/refresh
+     * Recibe un Refresh Token y devuelve un nuevo set de tokens (Access + Refresh).
+     * Mantiene el estado de la sesión (General o De Rol).
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Refresh Token es requerido"));
+        }
+
+        try {
+            JwtResponse response = sessionService.refreshSession(refreshToken);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
+        }
     }
 
     /**

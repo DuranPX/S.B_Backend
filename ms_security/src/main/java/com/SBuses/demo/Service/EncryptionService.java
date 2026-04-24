@@ -18,4 +18,17 @@ public class EncryptionService {
     public boolean checkPassword(String rawPassword, String hashedPassword) {
         return passwordEncoder.matches(rawPassword, hashedPassword);
     }
+
+    /**
+     * Genera un hash SHA-256 para tokens de sesión (más rápido que BCrypt).
+     */
+    public String hashValue(String value) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(value.getBytes());
+            return java.util.Base64.getEncoder().encodeToString(encodedhash);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("Error fatal en algoritmo de hash", e);
+        }
+    }
 }
