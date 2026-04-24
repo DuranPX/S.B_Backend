@@ -32,3 +32,6 @@ Paso 1: Identificar el codigo, entidad o Proveedor OAuth donde se crean, actuali
 Paso 2: Inyectar PermissionValidationService en dicha clase.
 Paso 3: Inmediatamente depues de ejecutar el metodo roleRepository.save() o delete(), llamar a la instancia del cache.
 Paso 4: Ejecutar "permissionValidationService.refreshCache();" garantizando una subscripcion e hidratado de memoria en toda la red de Spring simultaneamente.
+
+
+Esto es para la sustentación Individual
