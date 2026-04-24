@@ -132,9 +132,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             targetUrl = redirectUrl + "?email=" + email + "&require2fa=true";
         } else {
             String token = jwtUtil.generateToken(user.getId(), email, user.getRoles());
-            // Crear sesión (invalida sesiones previas → sesión única)
-            sessionService.createSession(token);
-            targetUrl = redirectUrl + "?token=" + token;
+            // Crear sesión y obtener par de tokens
+            com.SBuses.demo.DTOs.JwtResponse jwtResponse = sessionService.createSession(token);
+            targetUrl = redirectUrl + "?token=" + jwtResponse.getToken() + "&refreshToken=" + jwtResponse.getRefreshToken();
         }
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
