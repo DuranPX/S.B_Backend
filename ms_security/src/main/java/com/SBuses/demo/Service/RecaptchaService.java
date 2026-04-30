@@ -53,6 +53,8 @@ public class RecaptchaService {
             // asumimos score máximo si success es true
             double score = json.has("score") ? json.get("score").asDouble() : 1.0;
 
+            //System.out.println("El puntaje de reCAPTCHA fue: " + score); //Debug para saber el puntaje de reCAPTCHA del usuario
+
             return success && score >= minScore;
 
         } catch (IOException | InterruptedException e) {
