@@ -25,6 +25,12 @@ public class Session {
     @Indexed(unique = true)
     private String jti;
 
+    // Tipo de token (general o auth_role)
+    private String tokenType;
+
+    // Rol activo si el tipo es auth_role
+    private String activeRole;
+
     // Hash SHA-256 del refresh token (nunca el valor plano)
     private String refreshTokenHash;
 

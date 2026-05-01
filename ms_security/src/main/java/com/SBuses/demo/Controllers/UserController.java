@@ -34,7 +34,7 @@ public class UserController {
     private UserRepository userRepository;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'leer')")
     public ResponseEntity<List<User>> getAll() {
         return ResponseEntity.ok(userService.find());
     }
@@ -45,14 +45,14 @@ public class UserController {
      * Solo accesible por ADMIN.
      */
     @GetMapping("/search")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'leer')")
     public ResponseEntity<List<User>> search(
             @RequestParam(name = "q", required = false, defaultValue = "") String query) {
         return ResponseEntity.ok(userService.search(query));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'leer') or #id == principal.id")
     public ResponseEntity<User> getById(@PathVariable String id) {
         User user = userService.findById(id).orElse(null);
         if (user != null) {
@@ -62,7 +62,7 @@ public class UserController {
     }
 
     @GetMapping("/email/{email}")
-    @PreAuthorize("hasRole('ADMIN') or #email == principal.username")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'leer') or #email == principal.username")
     public ResponseEntity<User> getByEmail(@PathVariable String email) {
         User user = userService.findByEmail(email).orElse(null);
         if (user != null) {
@@ -72,14 +72,14 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'escribir')")
     public ResponseEntity<User> create(@RequestBody User user) {
         User created = userService.create(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'editar') or #id == principal.id")
     public ResponseEntity<User> update(@PathVariable String id, @RequestBody User user) {
         User updated = userService.update(id, user);
         if (updated != null) {
@@ -89,7 +89,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'eliminar')")
     public ResponseEntity<Void> delete(@PathVariable String id) {
         boolean deleted = userService.delete(id);
         if (deleted) {
@@ -99,13 +99,13 @@ public class UserController {
     }
 
     @PostMapping("/{id}/roles/{rolId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'editar')")
     public ResponseEntity<User> assignRole(@PathVariable String id, @PathVariable String rolId) {
         return ResponseEntity.ok(userService.assignRole(id, rolId));
     }
 
     @DeleteMapping("/{id}/roles/{rolId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'editar')")
     public ResponseEntity<User> removeRole(@PathVariable String id, @PathVariable String rolId) {
         return ResponseEntity.ok(userService.removeRole(id, rolId));
     }
@@ -117,7 +117,7 @@ public class UserController {
      * desvincular cualquiera.
      */
     @DeleteMapping("/{id}/auth-external/{provider}")
-    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'editar') or #id == principal.id")
     public ResponseEntity<?> unlinkAuthExternal(@PathVariable String id, @PathVariable String provider) {
         try {
             User updated = userService.unlinkAuthExternal(id, provider);
@@ -135,7 +135,7 @@ public class UserController {
      * Consulta si el usuario tiene contraseña propia.
      */
     @GetMapping("/{id}/has-password")
-    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'leer') or #id == principal.id")
     public ResponseEntity<?> hasPassword(@PathVariable String id) {
         boolean hasPassword = userService.hasPassword(id);
         return ResponseEntity.ok(Map.of("hasPassword", hasPassword));
@@ -146,7 +146,7 @@ public class UserController {
      * Crea la contraseña para un usuario OAuth2.
      */
     @PostMapping("/{id}/set-password")
-    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'editar') or #id == principal.id")
     public ResponseEntity<?> setPassword(
             @PathVariable String id,
             @Valid @RequestBody SetPasswordRequest request) {
@@ -167,7 +167,7 @@ public class UserController {
      * Cambia la contraseña de un usuario.
      */
     @PutMapping("/{id}/change-password")
-    @PreAuthorize("hasRole('ADMIN') or #id == principal.id")
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'usuarios', 'editar') or #id == principal.id")
     public ResponseEntity<?> changePassword(
             @PathVariable String id,
             @RequestBody ChangePasswordRequest request) {

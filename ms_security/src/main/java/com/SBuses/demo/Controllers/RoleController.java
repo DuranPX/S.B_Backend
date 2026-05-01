@@ -13,16 +13,17 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/roles")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class RoleController {
 
     private final RoleService roleService;
 
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'roles', 'leer')")
     @GetMapping
     public ResponseEntity<List<Role>> getAll() {
         return ResponseEntity.ok(roleService.getAll());
     }
 
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'roles', 'leer')")
     @GetMapping("/{id}")
     public ResponseEntity<Role> getById(@PathVariable String id) {
         return roleService.getById(id)
@@ -30,16 +31,19 @@ public class RoleController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'roles', 'escribir')")
     @PostMapping
     public ResponseEntity<Role> create(@RequestBody Role role) {
         return ResponseEntity.ok(roleService.create(role));
     }
 
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'roles', 'editar')")
     @PutMapping("/{id}")
     public ResponseEntity<Role> update(@PathVariable String id, @RequestBody Role role) {
         return ResponseEntity.ok(roleService.update(id, role));
     }
 
+    @PreAuthorize("@permissionValidationService.hasPermission(authentication, 'roles', 'eliminar')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id) {
         roleService.delete(id);
