@@ -1,5 +1,5 @@
 import { MetodoPagoCiudadano } from "src/metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity";
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('metodo_pago')
 export class MetodoPago {
@@ -12,6 +12,6 @@ export class MetodoPago {
     @Column()
     descripcion?: string;
 
-    @OneToOne(() => MetodoPagoCiudadano, (metodoPagoCiudadano) => metodoPagoCiudadano.metodoPago)
+    @OneToMany(() => MetodoPagoCiudadano, (metodoPagoCiudadano) => metodoPagoCiudadano.metodoPago)
     metodoPagoCiudadano?: MetodoPagoCiudadano;
 }

@@ -1,6 +1,7 @@
 import { Empresa } from "src/empresa/entities/empresa.entity";
 import { Gps } from "src/gps/entities/gp.entity";
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Turno } from "src/turno/entities/turno.entity";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('bus')
 export class Bus {
@@ -41,6 +42,6 @@ export class Bus {
     @OneToOne(() => Gps, (gps) => gps.bus)
     gps?: Gps;
     
-    //@OneToMany(() => Turno, (t) => t.bus)
-    //turnos: Turno[];
+    @OneToMany(() => Turno, (t) => t.bus)
+    turnos: Turno[];
 }

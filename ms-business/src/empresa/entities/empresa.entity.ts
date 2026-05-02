@@ -1,5 +1,6 @@
 import { Bus } from "src/bus/entities/bus.entity";
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Conductor } from "src/conductor/entities/conductor.entity";
+import { Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('empresa')
 export class Empresa {
@@ -14,4 +15,7 @@ export class Empresa {
 
     @OneToMany(() => Bus, (bus) => bus.empresa)
     bus?: Bus[];
+
+    @ManyToMany(() => Conductor, (conductor) => conductor.empresas)
+    conductores: Conductor[];
 }
