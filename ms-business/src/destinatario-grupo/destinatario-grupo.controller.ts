@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
 import { DestinatarioGrupoService } from './destinatario-grupo.service';
 import { CreateDestinatarioGrupoDto } from './dto/create-destinatario-grupo.dto';
 import { UpdateDestinatarioGrupoDto } from './dto/update-destinatario-grupo.dto';
@@ -18,17 +18,17 @@ export class DestinatarioGrupoController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.destinatarioGrupoService.findOne(+id);
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.destinatarioGrupoService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDestinatarioGrupoDto: UpdateDestinatarioGrupoDto) {
-    return this.destinatarioGrupoService.update(+id, updateDestinatarioGrupoDto);
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateDestinatarioGrupoDto: UpdateDestinatarioGrupoDto) {
+    return this.destinatarioGrupoService.update(id, updateDestinatarioGrupoDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.destinatarioGrupoService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.destinatarioGrupoService.remove(id);
   }
 }
