@@ -1,1 +1,3 @@
-export class Persona {}
+export class Persona {
+    
+}
