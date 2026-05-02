@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
 import { GrupoPersonaService } from './grupo-persona.service';
 import { CreateGrupoPersonaDto } from './dto/create-grupo-persona.dto';
 import { UpdateGrupoPersonaDto } from './dto/update-grupo-persona.dto';
@@ -18,17 +18,17 @@ export class GrupoPersonaController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.grupoPersonaService.findOne(+id);
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.grupoPersonaService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateGrupoPersonaDto: UpdateGrupoPersonaDto) {
-    return this.grupoPersonaService.update(+id, updateGrupoPersonaDto);
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateGrupoPersonaDto: UpdateGrupoPersonaDto) {
+    return this.grupoPersonaService.update(id, updateGrupoPersonaDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.grupoPersonaService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.grupoPersonaService.remove(id);
   }
 }

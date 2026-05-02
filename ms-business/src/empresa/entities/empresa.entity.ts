@@ -13,5 +13,5 @@ export class Empresa {
     nit?: String;
 
     @OneToMany(() => Bus, (bus) => bus.empresa)
-    bus?: Bus;
+    bus?: Bus[];
 }

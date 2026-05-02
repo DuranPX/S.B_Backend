@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
 import { TurnoService } from './turno.service';
 import { CreateTurnoDto } from './dto/create-turno.dto';
 import { UpdateTurnoDto } from './dto/update-turno.dto';
@@ -18,17 +18,17 @@ export class TurnoController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.turnoService.findOne(+id);
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.turnoService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTurnoDto: UpdateTurnoDto) {
-    return this.turnoService.update(+id, updateTurnoDto);
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateTurnoDto: UpdateTurnoDto) {
+    return this.turnoService.update(id, updateTurnoDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.turnoService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.turnoService.remove(id);
   }
 }
