@@ -68,7 +68,7 @@ public class GmailService {
                 .build();
     }
 
-    // Enviar correo HTML — equivalente al send_message() de Python
+    // Enviar correo HTML
     public void sendEmail(String to, String subject, String htmlBody) {
         try {
             Gmail service = buildGmailService();

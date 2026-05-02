@@ -69,7 +69,7 @@ public class SessionService {
         session.setRefreshTokenHash(hash);
         session.setActive(true);
         session.setCreatedAt(new Date());
-        session.setExpiresAt(new Date(System.currentTimeMillis() + 3600000L)); // 1 hora (mismo que JWT)
+        session.setExpiresAt(new Date(System.currentTimeMillis() + 3600000L)); // 1 hora
 
         Session savedSession = sessionRepository.save(session);
 
