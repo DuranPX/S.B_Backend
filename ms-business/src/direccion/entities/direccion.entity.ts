@@ -8,7 +8,7 @@ export class Direccion {
 
     @OneToOne(() => Ciudadano, (ciudadano) => ciudadano.direccion, {onDelete: 'CASCADE',})
     @JoinColumn({ name: 'ciudadano_id' })
-    ciudadano: Ciudadano;
+    ciudadano?: Ciudadano;
 
     @Column()
     calle?: String;

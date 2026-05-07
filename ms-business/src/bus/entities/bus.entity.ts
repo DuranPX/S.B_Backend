@@ -5,14 +5,14 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGene
 
 @Entity('bus')
 export class Bus {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn('uuid')
     id?: number;
 
     @Column({name: 'placa', unique: true})
-    placa?: String;
+    placa?: string;
 
     @Column()
-    modelo?: String;
+    modelo?: string;
 
     @Column()
     anio?: number;
@@ -27,21 +27,21 @@ export class Bus {
     capacidad_parados?: number;
 
     @Column({enum: ['Operativo', 'Mantenimiento', 'Fuera_Servicio']})
-    estado?: String;
+    estado?: string;
 
     @ManyToOne(() => Empresa, (empresa) => empresa.bus, { onDelete: 'SET NULL', nullable: true })
     @JoinColumn({ name: 'empresa_id' })
     empresa?: Empresa;
 
-    @Column()
-    foto_url?: String;
+    @Column({ nullable: true })
+    foto_url?: string;
     
-    @Column()
-    qr_code?: String;
+    @Column({ nullable: true })
+    qr_code?: string;
 
     @OneToOne(() => Gps, (gps) => gps.bus)
     gps?: Gps;
     
     @OneToMany(() => Turno, (t) => t.bus)
-    turnos: Turno[];
+    turnos?: Turno[];
 }

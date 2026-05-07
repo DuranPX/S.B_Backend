@@ -4,7 +4,7 @@ import { Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from
 
 @Entity('metodo_pago_ciudadano')
 export class MetodoPagoCiudadano {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn('uuid')
     id?: number;
 
     @OneToMany(() => MetodoPago, (metodoPago) => metodoPago.metodoPagoCiudadano, { onDelete: 'CASCADE' })

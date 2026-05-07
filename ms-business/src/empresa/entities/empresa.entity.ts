@@ -4,14 +4,14 @@ import { Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "t
 
 @Entity('empresa')
 export class Empresa {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn('uuid')
     id?: number;
 
     @Column()
-    nombre?: String;
+    nombre?: string;
 
     @Column({name: 'nit', unique: true})
-    nit?: String;
+    nit?: string;
 
     @OneToMany(() => Bus, (bus) => bus.empresa)
     bus?: Bus[];

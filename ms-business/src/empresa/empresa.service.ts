@@ -61,12 +61,7 @@ export class EmpresaService {
 
     async remove(id: number): Promise<{ message: string }> {
         const empresa = await this.findOne(id);
-
-        if (empresa.bus && empresa.bus.length > 0) {
-            throw new ConflictException('No se puede eliminar la empresa porque tiene buses asociados');
-        }
-
         await this.empresaRepository.remove(empresa);
-        return { message: `Empresa #${id} eliminada correctamente` };
+        return { message: `Empresa #${id} eliminada correctamente. Los buses asociados quedaron disponibles para reasignación.` };
     }
 }

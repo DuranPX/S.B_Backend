@@ -3,11 +3,11 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('metodo_pago')
 export class MetodoPago {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn('uuid')
     id?: number;
 
     @Column({enum: ['Tarjeta', 'Efectivo', 'ePayco']})
-    tipo?: String;
+    tipo?: string;
 
     @Column()
     descripcion?: string;
