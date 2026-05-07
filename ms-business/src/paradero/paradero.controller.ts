@@ -1,9 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+// src/paradero/paradero.controller.ts
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { ParaderoService } from './paradero.service';
 import { CreateParaderoDto } from './dto/create-paradero.dto';
 import { UpdateParaderoDto } from './dto/update-paradero.dto';
 
-@Controller('paradero')
+@Controller('paraderos')
 export class ParaderoController {
   constructor(private readonly paraderoService: ParaderoService) {}
 
@@ -18,17 +28,20 @@ export class ParaderoController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.paraderoService.findOne(+id);
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.paraderoService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateParaderoDto: UpdateParaderoDto) {
-    return this.paraderoService.update(+id, updateParaderoDto);
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateParaderoDto: UpdateParaderoDto,
+  ) {
+    return this.paraderoService.update(id, updateParaderoDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.paraderoService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.paraderoService.remove(id);
   }
 }
