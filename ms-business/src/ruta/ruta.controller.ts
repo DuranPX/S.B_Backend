@@ -1,9 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+// src/ruta/ruta.controller.ts
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { RutaService } from './ruta.service';
 import { CreateRutaDto } from './dto/create-ruta.dto';
 import { UpdateRutaDto } from './dto/update-ruta.dto';
 
-@Controller('ruta')
+@Controller('rutas')
 export class RutaController {
   constructor(private readonly rutaService: RutaService) {}
 
@@ -18,17 +28,26 @@ export class RutaController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.rutaService.findOne(+id);
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.rutaService.findOne(id);
+  }
+
+  // Endpoint estrella — ruta completa con nodos y paraderos ordenados
+  @Get(':id/completa')
+  findRutaCompleta(@Param('id', ParseUUIDPipe) id: string) {
+    return this.rutaService.findRutaCompleta(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRutaDto: UpdateRutaDto) {
-    return this.rutaService.update(+id, updateRutaDto);
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateRutaDto: UpdateRutaDto,
+  ) {
+    return this.rutaService.update(id, updateRutaDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.rutaService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.rutaService.remove(id);
   }
 }

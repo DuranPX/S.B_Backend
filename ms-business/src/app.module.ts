@@ -27,6 +27,9 @@ import { FotoModule } from './foto/foto.module';
 import { MetodoPagoModule } from './metodo-pago/metodo-pago.module';
 import { MetodoPagoCiudadanoModule } from './metodo-pago-ciudadano/metodo-pago-ciudadano.module';
 import { BoletoModule } from './boleto/boleto.module';
+import { RutaNodoModule } from './ruta_nodo/ruta_nodo.module';
+import { RutaParaderoModule } from './ruta_paradero/ruta_paradero.module';
+
 
 @Module({
   imports: [
@@ -69,6 +72,9 @@ import { BoletoModule } from './boleto/boleto.module';
     MetodoPagoModule,
     MetodoPagoCiudadanoModule,
     BoletoModule,
+    RutaNodoModule,
+    RutaParaderoModule,
+    RutaNodoModule,
   ],
   controllers: [AppController],
   providers: [AppService],
