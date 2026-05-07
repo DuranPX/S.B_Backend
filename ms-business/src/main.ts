@@ -1,9 +1,13 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { useContainer } from 'class-validator';
+
+
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
   // ValidationPipe global — activa class-validator en todos los DTOs.
   // whitelist: true  → elimina campos no declarados en el DTO (protección extra).
