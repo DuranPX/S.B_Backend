@@ -52,7 +52,6 @@ export class BoletoService {
 
     // Registramos el historial de la compra
     await this.historialService.create({
-      ciudadano_id,
       tipo: TipoHistorial.VIAJE,
       monto: createBoletoDto.monto_pagado,
       boleto_id: boletoGuardado.id,

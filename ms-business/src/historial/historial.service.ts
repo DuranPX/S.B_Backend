@@ -1,8 +1,5 @@
 // src/historial/historial.service.ts
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Historial, TipoHistorial } from './entities/historial.entity';
@@ -17,11 +14,10 @@ export class HistorialService {
   ) {}
 
   async create(createHistorialDto: CreateHistorialDto): Promise<Historial> {
-    const { ciudadano_id, boleto_id, ...rest } = createHistorialDto;
+    const { boleto_id, ...rest } = createHistorialDto;
 
     const historial = this.historialRepository.create({
       ...rest,
-      ciudadano: { id: ciudadano_id } as any,
       ...(boleto_id && { boleto: { id: boleto_id } as any }),
     });
 
@@ -30,7 +26,7 @@ export class HistorialService {
 
   async findAll(): Promise<Historial[]> {
     return await this.historialRepository.find({
-      relations: ['ciudadano', 'boleto'],
+      relations: ['boleto'],
       order: { fecha: 'DESC' },
     });
   }
@@ -38,7 +34,7 @@ export class HistorialService {
   async findOne(id: string): Promise<Historial> {
     const historial = await this.historialRepository.findOne({
       where: { id },
-      relations: ['ciudadano', 'boleto'],
+      relations: ['boleto'],
     });
 
     if (!historial) {
@@ -48,20 +44,17 @@ export class HistorialService {
     return historial;
   }
 
-  async findByciudadano(ciudadano_id: string): Promise<Historial[]> {
+  async findByBoleto(boleto_id: string): Promise<Historial[]> {
     return await this.historialRepository.find({
-      where: { ciudadano: { id: ciudadano_id } as any },
+      where: { boleto: { id: boleto_id } as any },
       relations: ['boleto', 'boleto.programacion', 'boleto.paraderoAbordaje', 'boleto.paraderoDescenso'],
       order: { fecha: 'DESC' },
     });
   }
 
-  async findViajesByCiudadano(ciudadano_id: string): Promise<Historial[]> {
+  async findViajes(): Promise<Historial[]> {
     return await this.historialRepository.find({
-      where: {
-        ciudadano: { id: ciudadano_id } as any,
-        tipo: TipoHistorial.VIAJE,
-      },
+      where: { tipo: TipoHistorial.VIAJE },
       relations: ['boleto', 'boleto.programacion', 'boleto.paraderoAbordaje', 'boleto.paraderoDescenso'],
       order: { fecha: 'DESC' },
     });
@@ -69,9 +62,8 @@ export class HistorialService {
 
   async update(id: string, updateHistorialDto: UpdateHistorialDto): Promise<Historial> {
     const historial = await this.findOne(id);
-    const { ciudadano_id, boleto_id, ...rest } = updateHistorialDto;
+    const { boleto_id, ...rest } = updateHistorialDto;
 
-    if (ciudadano_id) historial.ciudadano = { id: ciudadano_id } as any;
     if (boleto_id) historial.boleto = { id: boleto_id } as any;
 
     Object.assign(historial, rest);
