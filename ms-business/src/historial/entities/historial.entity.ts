@@ -1,12 +1,5 @@
 // src/historial/entities/historial.entity.ts
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
-import { Ciudadano } from '../../ciudadano/entities/ciudadano.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Boleto } from '../../boleto/entities/boleto.entity';
 
 export enum TipoHistorial {
@@ -20,10 +13,6 @@ export class Historial {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Ciudadano, { onDelete: 'RESTRICT', nullable: false })
-  @JoinColumn({ name: 'ciudadano_id' })
-  ciudadano: Ciudadano;
-
   @Column({ type: 'enum', enum: TipoHistorial })
   tipo: TipoHistorial;
 
@@ -33,7 +22,6 @@ export class Historial {
   @Column({ nullable: true })
   referencia_externa: string;
 
-  // Nullable porque no todo historial viene de un boleto (ej: recargas)
   @ManyToOne(() => Boleto, (boleto) => boleto.historiales, {
     onDelete: 'SET NULL',
     nullable: true,

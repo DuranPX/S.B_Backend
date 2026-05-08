@@ -1,15 +1,8 @@
 // src/boleto/entities/boleto.entity.ts
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Ciudadano } from '../../ciudadano/entities/ciudadano.entity';
 import { Programacion } from '../../programacion/entities/programacion.entity';
-import { MetodoPago } from '../../metodo-pago/entities/metodo-pago.entity';
+import { MetodoPagoCiudadano } from '../../metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity';
 import { Paradero } from '../../paradero/entities/paradero.entity';
 import { Historial } from '../../historial/entities/historial.entity';
 
@@ -35,9 +28,9 @@ export class Boleto {
   @JoinColumn({ name: 'programacion_id' })
   programacion: Programacion;
 
-  @ManyToOne(() => MetodoPago, { onDelete: 'RESTRICT', nullable: false })
+  @ManyToOne(() => MetodoPagoCiudadano, { onDelete: 'RESTRICT', nullable: false })
   @JoinColumn({ name: 'metodo_pago_id' })
-  metodoPago: MetodoPago;
+  metodoPago: MetodoPagoCiudadano;
 
   @ManyToOne(() => Paradero, { onDelete: 'RESTRICT', nullable: false })
   @JoinColumn({ name: 'paradero_abordaje_id' })
