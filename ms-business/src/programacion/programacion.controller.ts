@@ -1,9 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+// src/programacion/programacion.controller.ts
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { ProgramacionService } from './programacion.service';
 import { CreateProgramacionDto } from './dto/create-programacion.dto';
 import { UpdateProgramacionDto } from './dto/update-programacion.dto';
 
-@Controller('programacion')
+@Controller('programaciones')
 export class ProgramacionController {
   constructor(private readonly programacionService: ProgramacionService) {}
 
@@ -18,17 +28,20 @@ export class ProgramacionController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.programacionService.findOne(+id);
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.programacionService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProgramacionDto: UpdateProgramacionDto) {
-    return this.programacionService.update(+id, updateProgramacionDto);
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateProgramacionDto: UpdateProgramacionDto,
+  ) {
+    return this.programacionService.update(id, updateProgramacionDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.programacionService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.programacionService.remove(id);
   }
 }

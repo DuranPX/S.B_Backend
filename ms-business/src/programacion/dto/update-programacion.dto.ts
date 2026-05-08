@@ -1,3 +1,4 @@
+// src/programacion/dto/update-programacion.dto.ts
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateProgramacionDto } from './create-programacion.dto';
 
