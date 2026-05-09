@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+// src/historial/historial.controller.ts
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { HistorialService } from './historial.service';
 import { CreateHistorialDto } from './dto/create-historial.dto';
 import { UpdateHistorialDto } from './dto/update-historial.dto';
@@ -17,18 +26,28 @@ export class HistorialController {
     return this.historialService.findAll();
   }
 
+  // Historial de un boleto específico
+  @Get('boleto/:boleto_id')
+  findByBoleto(@Param('boleto_id', ParseUUIDPipe) boleto_id: string) {
+    return this.historialService.findByBoleto(boleto_id);
+  }
+
+  // Endpoint estrella — todos los viajes registrados
+  @Get('viajes')
+  findViajes() {
+    return this.historialService.findViajes();
+  }
+
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.historialService.findOne(+id);
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.historialService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateHistorialDto: UpdateHistorialDto) {
-    return this.historialService.update(+id, updateHistorialDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.historialService.remove(+id);
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateHistorialDto: UpdateHistorialDto,
+  ) {
+    return this.historialService.update(id, updateHistorialDto);
   }
 }

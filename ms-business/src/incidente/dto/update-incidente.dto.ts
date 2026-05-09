@@ -1,3 +1,4 @@
+
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateIncidenteDto } from './create-incidente.dto';
 

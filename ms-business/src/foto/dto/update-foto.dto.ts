@@ -1,3 +1,4 @@
+// src/foto/dto/update-foto.dto.ts
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateFotoDto } from './create-foto.dto';
 
