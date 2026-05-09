@@ -8,6 +8,7 @@ import {
   IsEmail,
   IsEnum
 } from 'class-validator';
+import { TipoDocumento } from '../entities/persona.entity';
 
 export class CreatePersonaDto {
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
@@ -33,8 +34,8 @@ export class CreatePersonaDto {
   email: string;
 
   @IsNotEmpty()
-  @IsEnum(['CC', 'TI', 'CE', 'PAS'])
-  tipoDocumento: string;
+  @IsEnum(TipoDocumento)
+  tipoDocumento: TipoDocumento;
 
   @IsNotEmpty()
   @IsString()

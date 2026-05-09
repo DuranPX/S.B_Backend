@@ -1,6 +1,6 @@
-import { Boleto } from "src/boleto/entities/boleto.entity";
-import { Ciudadano } from "src/ciudadano/entities/ciudadano.entity";
-import { MetodoPago } from "src/metodo-pago/entities/metodo-pago.entity";
+import { Boleto } from "../../boleto/entities/boleto.entity";
+import { Ciudadano } from "../../ciudadano/entities/ciudadano.entity";
+import { MetodoPago } from "../../metodo-pago/entities/metodo-pago.entity";
 import { Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('metodo_pago_ciudadano')

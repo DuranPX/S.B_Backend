@@ -1,7 +1,6 @@
-import { DestinatarioGrupo } from "src/destinatario-grupo/entities/destinatario-grupo.entity";
-import { Grupo } from "src/grupo/entities/grupo.entity";
-import { Persona } from "src/persona/entities/persona.entity";
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Grupo } from "../../grupo/entities/grupo.entity";
+import { Persona } from "../../persona/entities/persona.entity";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('grupo_persona')
 export class GrupoPersona {

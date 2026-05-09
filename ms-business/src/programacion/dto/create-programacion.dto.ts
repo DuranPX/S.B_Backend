@@ -10,7 +10,7 @@ import {
   Matches,
 } from 'class-validator';
 import { TipoRecurrencia, EstadoProgramacion } from '../entities/programacion.entity';
-import { IsNotPastDate } from 'src/common/validators/is-not-past-date.validator';
+import { IsNotPastDate } from '../../common/validators/is-not-past-date.validator';
 
 export class CreateProgramacionDto {
   @IsNotEmpty()

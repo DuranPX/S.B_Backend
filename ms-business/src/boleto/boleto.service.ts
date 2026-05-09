@@ -40,7 +40,7 @@ export class BoletoService {
       ...rest,
       ciudadano: { id: ciudadano_id } as any,
       programacion: { id: programacion_id } as any,
-      metodoPago: { id: metodo_pago_id } as any,
+      metodoPagoCiudadano: { id: metodo_pago_id } as any,
       paraderoAbordaje: { id: paradero_abordaje_id } as any,
       paraderoDescenso: { id: paradero_descenso_id } as any,
     });
@@ -104,7 +104,7 @@ export class BoletoService {
 
     if (ciudadano_id) boleto.ciudadano = { id: ciudadano_id } as any;
     if (programacion_id) boleto.programacion = { id: programacion_id } as any;
-    if (metodo_pago_id) boleto.metodoPago = { id: metodo_pago_id } as any;
+    if (metodo_pago_id) boleto.metodoPagoCiudadano = { id: metodo_pago_id } as any;
     if (paradero_abordaje_id) boleto.paraderoAbordaje = { id: paradero_abordaje_id } as any;
     if (paradero_descenso_id) boleto.paraderoDescenso = { id: paradero_descenso_id } as any;
 

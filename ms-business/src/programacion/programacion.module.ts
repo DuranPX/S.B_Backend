@@ -9,6 +9,6 @@ import { ProgramacionController } from './programacion.controller';
   imports: [TypeOrmModule.forFeature([Programacion])],
   controllers: [ProgramacionController],
   providers: [ProgramacionService],
-  exports: [ProgramacionService],
+  exports: [TypeOrmModule, ProgramacionService],
 })
 export class ProgramacionModule {}

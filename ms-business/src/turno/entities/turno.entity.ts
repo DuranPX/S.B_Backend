@@ -1,5 +1,5 @@
-import { Conductor } from "src/conductor/entities/conductor.entity";
-import { Bus } from "src/bus/entities/bus.entity";
+import { Conductor } from "../../conductor/entities/conductor.entity";
+import { Bus } from "../../bus/entities/bus.entity";
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('turnos')

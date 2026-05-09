@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { DireccionService } from './direccion.service';
 import { DireccionController } from './direccion.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CiudadanoModule } from 'src/ciudadano/ciudadano.module';
+import { CiudadanoModule } from '../ciudadano/ciudadano.module';
 import { Direccion } from './entities/direccion.entity';
 
 @Module({
@@ -14,4 +14,4 @@ import { Direccion } from './entities/direccion.entity';
   providers: [DireccionService],
   exports: [DireccionService],
 })
-export class DireccionModule {}
+export class DireccionModule { }

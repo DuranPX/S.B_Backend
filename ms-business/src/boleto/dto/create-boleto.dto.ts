@@ -9,7 +9,7 @@ import {
   IsDateString,
 } from 'class-validator';
 import { EstadoBoleto } from '../entities/boleto.entity';
-import { HasDisponibilidad } from 'src/common/validators/has-disponibilidad.validator';
+import { HasDisponibilidad } from '../../common/validators/has-disponibilidad.validator';
 
 export class CreateBoletoDto {
   @IsNotEmpty()

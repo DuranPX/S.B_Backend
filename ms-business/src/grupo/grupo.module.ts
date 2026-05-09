@@ -3,8 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { GrupoService } from './grupo.service';
 import { GrupoController } from './grupo.controller';
 import { Grupo } from './entities/grupo.entity';
-import { GrupoPersona } from 'src/grupo-persona/entities/grupo-persona.entity';
-import { PersonaModule } from 'src/persona/persona.module';
+import { GrupoPersona } from '../grupo-persona/entities/grupo-persona.entity';
+import { PersonaModule } from '../persona/persona.module';
 
 @Module({
     imports: [
@@ -15,4 +15,4 @@ import { PersonaModule } from 'src/persona/persona.module';
     providers: [GrupoService],
     exports: [GrupoService],
 })
-export class GrupoModule {}
+export class GrupoModule { }

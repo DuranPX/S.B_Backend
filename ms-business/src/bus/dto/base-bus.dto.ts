@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, IsNumber, IsEnum, IsOptional, Min } from 'class-validator';
+import { EstadoBus } from '../entities/bus.entity';
 
 export class BaseBusDto {
     @IsString()
@@ -25,8 +26,8 @@ export class BaseBusDto {
     @Min(0)
     capacidad_parados?: number;
 
-    @IsEnum({ enum: ['Operativo', 'Mantenimiento', 'Fuera_Servicio'], message: 'Estado debe ser Operativo, Mantenimiento o Fuera_Servicio' })
-    estado?: string;
+    @IsEnum(EstadoBus)
+    estado: EstadoBus;
 
     @IsOptional()
     @IsString()

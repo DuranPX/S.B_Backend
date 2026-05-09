@@ -3,15 +3,15 @@ import { CreateCiudadanoDto } from './dto/create-ciudadano.dto';
 import { UpdateCiudadanoDto } from './dto/update-ciudadano.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Ciudadano } from './entities/ciudadano.entity';
-import { PersonaService } from 'src/persona/persona.service';
+import { PersonaService } from '../persona/persona.service';
 import { Repository } from 'typeorm';
 
 @Injectable()
 export class CiudadanoService {
-    constructor (@InjectRepository(Ciudadano)
-      private readonly ciudadanoRepository: Repository<Ciudadano>,
-      private readonly personaService: PersonaService,
-    ) {}
+    constructor(@InjectRepository(Ciudadano)
+    private readonly ciudadanoRepository: Repository<Ciudadano>,
+        private readonly personaService: PersonaService,
+    ) { }
 
     async create(createCiudadanoDto: CreateCiudadanoDto): Promise<Ciudadano> {
         // Verificar que la persona existe

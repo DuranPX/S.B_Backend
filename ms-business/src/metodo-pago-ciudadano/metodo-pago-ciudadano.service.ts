@@ -4,8 +4,8 @@ import { Repository } from 'typeorm';
 import { MetodoPagoCiudadano } from './entities/metodo-pago-ciudadano.entity';
 import { CreateMetodoPagoCiudadanoDto } from './dto/create-metodo-pago-ciudadano.dto';
 import { UpdateMetodoPagoCiudadanoDto } from './dto/update-metodo-pago-ciudadano.dto';
-import { CiudadanoService } from 'src/ciudadano/ciudadano.service';
-import { MetodoPagoService } from 'src/metodo-pago/metodo-pago.service';
+import { CiudadanoService } from '../ciudadano/ciudadano.service';
+import { MetodoPagoService } from '../metodo-pago/metodo-pago.service';
 
 @Injectable()
 export class MetodoPagoCiudadanoService {
@@ -14,7 +14,7 @@ export class MetodoPagoCiudadanoService {
         private readonly metodoPagoCiudadanoRepository: Repository<MetodoPagoCiudadano>,
         private readonly ciudadanoService: CiudadanoService,
         private readonly metodoPagoService: MetodoPagoService,
-    ) {}
+    ) { }
 
     async create(createMetodoPagoCiudadanoDto: CreateMetodoPagoCiudadanoDto): Promise<MetodoPagoCiudadano> {
         const ciudadano = await this.ciudadanoService.findOne(createMetodoPagoCiudadanoDto.ciudadanoId);

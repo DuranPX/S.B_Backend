@@ -4,14 +4,14 @@ import { UpdateDireccionDto } from './dto/update-direccion.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Direccion } from './entities/direccion.entity';
 import { Repository } from 'typeorm';
-import { CiudadanoService } from 'src/ciudadano/ciudadano.service';
+import { CiudadanoService } from '../ciudadano/ciudadano.service';
 
 @Injectable()
 export class DireccionService {
-    constructor (@InjectRepository(Direccion)
-      private readonly direccionRepository: Repository<Direccion>,
-      private readonly ciudadanoService: CiudadanoService,
-    ) {}
+    constructor(@InjectRepository(Direccion)
+    private readonly direccionRepository: Repository<Direccion>,
+        private readonly ciudadanoService: CiudadanoService,
+    ) { }
 
     async create(createDireccionDto: CreateDireccionDto): Promise<Direccion> {
         // Verificar que el ciudadano existe

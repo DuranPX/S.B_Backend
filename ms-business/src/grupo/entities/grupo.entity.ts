@@ -1,5 +1,5 @@
-import { DestinatarioGrupo } from "src/destinatario-grupo/entities/destinatario-grupo.entity";
-import { GrupoPersona } from "src/grupo-persona/entities/grupo-persona.entity";
+import { DestinatarioGrupo } from "../../destinatario-grupo/entities/destinatario-grupo.entity";
+import { GrupoPersona } from "../../grupo-persona/entities/grupo-persona.entity";
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('grupo')
@@ -20,5 +20,5 @@ export class Grupo {
     grupoPersonas?: GrupoPersona[];
 
     @OneToMany(() => DestinatarioGrupo, (destinatariogrupo) => destinatariogrupo.grupo)
-    destinatarios?: DestinatarioGrupo[];
+    destinatariosGrupo?: DestinatarioGrupo[];
 }

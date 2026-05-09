@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Bus } from './entities/bus.entity';
 import { CreateBusDto } from './dto/create-bus.dto';
 import { UpdateBusDto } from './dto/update-bus.dto';
-import { EmpresaService } from 'src/empresa/empresa.service';
+import { EmpresaService } from '../empresa/empresa.service';
 
 @Injectable()
 export class BusService {
@@ -12,7 +12,7 @@ export class BusService {
         @InjectRepository(Bus)
         private readonly busRepository: Repository<Bus>,
         private readonly empresaService: EmpresaService,
-    ) {}
+    ) { }
 
     async create(createBusDto: CreateBusDto): Promise<Bus> {
         // Verificar placa duplicada

@@ -1,5 +1,5 @@
-import { Bus } from "src/bus/entities/bus.entity";
-import { Conductor } from "src/conductor/entities/conductor.entity";
+import { Bus } from "../../bus/entities/bus.entity";
+import { Conductor } from "../../conductor/entities/conductor.entity";
 import { Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('empresa')
