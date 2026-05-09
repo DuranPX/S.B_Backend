@@ -39,14 +39,14 @@ export class BusService {
 
     async findAll(): Promise<Bus[]> {
         return await this.busRepository.find({
-            relations: ['empresa', 'gps']
+            relations: ['empresa', 'gps', 'turnos', 'incidentes', 'programaciones']
         });
     }
 
     async findOne(id: string): Promise<Bus> {
         const bus = await this.busRepository.findOne({
             where: { id },
-            relations: ['empresa', 'gps']
+            relations: ['empresa', 'gps', 'turnos', 'incidentes', 'programaciones']
         });
         if (!bus) {
             throw new NotFoundException(`Bus #${id} no encontrado`);
@@ -57,7 +57,7 @@ export class BusService {
     async findByPlaca(placa: string): Promise<Bus> {
         const bus = await this.busRepository.findOne({
             where: { placa },
-            relations: ['empresa', 'gps']
+            relations: ['empresa', 'gps', 'turnos', 'incidentes', 'programaciones']
         });
         if (!bus) {
             throw new NotFoundException(`Bus con placa ${placa} no encontrado`);

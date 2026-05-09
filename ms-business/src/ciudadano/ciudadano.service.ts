@@ -31,14 +31,14 @@ export class CiudadanoService {
 
     async findAll(): Promise<Ciudadano[]> {
         return await this.ciudadanoRepository.find({
-            relations: ['persona', 'direccion']
+            relations: ['persona', 'direccion', 'metodoPagoCiudadano', 'boletos']
         });
     }
 
     async findOne(id: string): Promise<Ciudadano> {
         const ciudadano = await this.ciudadanoRepository.findOne({
             where: { id },
-            relations: ['persona', 'direccion']
+            relations: ['persona', 'direccion', 'metodoPagoCiudadano', 'boletos']
         });
         if (!ciudadano) {
             throw new NotFoundException(`Ciudadano #${id} no encontrado`);

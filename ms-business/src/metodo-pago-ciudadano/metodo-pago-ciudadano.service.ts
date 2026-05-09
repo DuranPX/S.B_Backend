@@ -39,21 +39,21 @@ export class MetodoPagoCiudadanoService {
 
     async findAll(): Promise<MetodoPagoCiudadano[]> {
         return await this.metodoPagoCiudadanoRepository.find({
-            relations: ['ciudadano', 'metodoPago']
+            relations: ['ciudadano', 'metodoPago', 'boletos']
         });
     }
 
     async findByCiudadano(ciudadanoId: string): Promise<MetodoPagoCiudadano[]> {
         return await this.metodoPagoCiudadanoRepository.find({
             where: { ciudadano: { id: ciudadanoId } },
-            relations: ['ciudadano', 'metodoPago']
+            relations: ['ciudadano', 'metodoPago', 'boletos']
         });
     }
 
     async findOne(id: string): Promise<MetodoPagoCiudadano> {
         const registro = await this.metodoPagoCiudadanoRepository.findOne({
             where: { id },
-            relations: ['ciudadano', 'metodoPago']
+            relations: ['ciudadano', 'metodoPago', 'boletos']
         });
         if (!registro) {
             throw new NotFoundException(`MetodoPagoCiudadano #${id} no encontrado`);

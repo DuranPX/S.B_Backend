@@ -30,7 +30,7 @@ export class Boleto {
 
   @ManyToOne(() => MetodoPagoCiudadano, { onDelete: 'RESTRICT', nullable: false })
   @JoinColumn({ name: 'metodo_pago_id' })
-  metodoPago: MetodoPagoCiudadano;
+  metodoPagoCiudadano: MetodoPagoCiudadano;
 
   @ManyToOne(() => Paradero, { onDelete: 'RESTRICT', nullable: false })
   @JoinColumn({ name: 'paradero_abordaje_id' })
