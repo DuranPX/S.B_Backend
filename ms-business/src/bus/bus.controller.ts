@@ -19,12 +19,12 @@ export class BusController {
 
     @Get(':id')
     findOne(@Param('id') id: string) {
-        return this.busService.findOne(+id);
+        return this.busService.findOne(id);
     }
 
     @Get(':id/ubicacion')
     getUltimaUbicacion(@Param('id') id: string) {
-        return this.busService.getUltimaUbicacion(+id);
+        return this.busService.getUltimaUbicacion(id);
     }
 
     @Get('placa/:placa')
@@ -34,11 +34,11 @@ export class BusController {
 
     @Patch(':id')
     update(@Param('id') id: string, @Body() updateBusDto: UpdateBusDto) {
-        return this.busService.update(+id, updateBusDto);
+        return this.busService.update(id, updateBusDto);
     }
 
     @Delete(':id')
     remove(@Param('id') id: string) {
-        return this.busService.remove(+id);
+        return this.busService.remove(id);
     }
 }

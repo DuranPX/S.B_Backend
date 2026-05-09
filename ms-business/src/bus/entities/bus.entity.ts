@@ -1,12 +1,14 @@
 import { Empresa } from "src/empresa/entities/empresa.entity";
 import { Gps } from "src/gps/entities/gp.entity";
+import { IncidenteBus } from "src/incidente-bus/entities/incidente-bus.entity";
+import { Programacion } from "src/programacion/entities/programacion.entity";
 import { Turno } from "src/turno/entities/turno.entity";
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('bus')
 export class Bus {
     @PrimaryGeneratedColumn('uuid')
-    id?: number;
+    id?: string;
 
     @Column({name: 'placa', unique: true})
     placa?: string;
@@ -44,4 +46,10 @@ export class Bus {
     
     @OneToMany(() => Turno, (t) => t.bus)
     turnos?: Turno[];
+
+    @OneToMany(() => IncidenteBus, (incidenteBus) => incidenteBus.bus)
+    incidentes?: IncidenteBus[];
+
+    @OneToMany(() => Programacion, (programacion) => programacion.bus)
+    programaciones?: Programacion[];
 }

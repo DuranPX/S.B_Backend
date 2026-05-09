@@ -43,7 +43,7 @@ export class BusService {
         });
     }
 
-    async findOne(id: number): Promise<Bus> {
+    async findOne(id: string): Promise<Bus> {
         const bus = await this.busRepository.findOne({
             where: { id },
             relations: ['empresa', 'gps']
@@ -66,7 +66,7 @@ export class BusService {
     }
 
     // Endpoint especial — última ubicación GPS por bus (HU-ENTR-2-006)
-    async getUltimaUbicacion(id: number) {
+    async getUltimaUbicacion(id: string) {
         const bus = await this.busRepository.findOne({
             where: { id },
             relations: ['gps']
@@ -86,7 +86,7 @@ export class BusService {
         };
     }
 
-    async update(id: number, updateBusDto: UpdateBusDto): Promise<Bus> {
+    async update(id: string, updateBusDto: UpdateBusDto): Promise<Bus> {
         const bus = await this.findOne(id);
 
         // Si se cambia la placa, verificar que no exista
@@ -109,7 +109,7 @@ export class BusService {
         return await this.busRepository.save(updated);
     }
 
-    async remove(id: number): Promise<{ message: string }> {
+    async remove(id: string): Promise<{ message: string }> {
         const bus = await this.findOne(id);
         await this.busRepository.remove(bus);
         return { message: `Bus #${id} eliminado correctamente` };

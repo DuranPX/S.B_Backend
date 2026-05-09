@@ -1,8 +1,8 @@
-import { IsNotEmpty, IsNumber } from "class-validator";
+import { IsNotEmpty, IsString } from "class-validator";
 import { BaseDireccionDto } from "./base-direccion.dto";
 
 export class CreateDireccionDto extends BaseDireccionDto {
-    @IsNumber()
+    @IsString()
     @IsNotEmpty({ message: 'El ciudadano es obligatorio' })
-    ciudadanoId?: number;
+    ciudadanoId?: string;
 }

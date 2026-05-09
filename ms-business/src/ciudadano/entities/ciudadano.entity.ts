@@ -1,3 +1,4 @@
+import { Boleto } from "src/boleto/entities/boleto.entity";
 import { Direccion } from "src/direccion/entities/direccion.entity";
 import { MetodoPagoCiudadano } from "src/metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity";
 import { Persona } from "src/persona/entities/persona.entity";
@@ -6,7 +7,7 @@ import { Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from 
 @Entity('ciudadano')
 export class Ciudadano {
     @PrimaryGeneratedColumn('uuid')
-    id?: number;
+    id?: string;
 
     @OneToOne(() => Persona, (persona) => persona.ciudadano, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'persona_id' })
@@ -17,4 +18,7 @@ export class Ciudadano {
 
     @OneToMany(() => MetodoPagoCiudadano, (metodoPagoCiudadano) => metodoPagoCiudadano.ciudadano)
     metodoPagoCiudadano?: MetodoPagoCiudadano[];
+
+    @OneToMany(() => Boleto, (boleto) => boleto.ciudadano)
+    boletos?: Boleto[];
 }

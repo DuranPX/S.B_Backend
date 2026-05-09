@@ -3,11 +3,11 @@ import { IsString, IsNotEmpty, IsNumber, IsEnum, IsOptional, Min } from 'class-v
 export class BaseBusDto {
     @IsString()
     @IsNotEmpty({ message: 'La placa es obligatoria' })
-    placa?: string;
+    placa!: string;
 
     @IsString()
     @IsNotEmpty({ message: 'El modelo es obligatorio' })
-    modelo?: string;
+    modelo!: string;
 
     @IsNumber()
     @Min(1900, { message: 'El año no es válido' })

@@ -15,18 +15,23 @@ export class GpsService {
   ) {}
 
   async create(createGpsDto: CreateGpsDto): Promise<Gps> {
+    // Verificar que busId existe
+    if (!createGpsDto.busId) {
+        throw new NotFoundException('El busId es obligatorio');
+    }
+      
     // Verificar que el bus existe
     const bus = await this.busService.findOne(createGpsDto.busId);
 
-    // Verificar que no exista
+    // Verificar que no exista otro GPS para ese bus
     const existing = await this.gpsRepository.findOne({
-      where: { bus: { id: createGpsDto.busId } }
+        where: { bus: { id: createGpsDto.busId } }
     });
     if (existing) {
-      throw new ConflictException(`El bus #${createGpsDto.busId} ya tiene un GPS registrado`);
+        throw new ConflictException(`El bus #${createGpsDto.busId} ya tiene un GPS registrado`);
     }
 
-    const gps = this.gpsRepository.create(createGpsDto)
+    const gps = this.gpsRepository.create();
     gps.bus = bus;
     return await this.gpsRepository.save(gps);
   }
@@ -37,7 +42,7 @@ export class GpsService {
     });
   }
 
-  async findOne(id: number): Promise<Gps> {
+  async findOne(id: string): Promise<Gps> {
     const gps = await this.gpsRepository.findOne({
       where: { id },
       relations: ['bus']
@@ -48,7 +53,7 @@ export class GpsService {
     return gps;
   }
 
-  async update(id: number, updateGpsDto: UpdateGpsDto): Promise<Gps> {
+  async update(id: string, updateGpsDto: UpdateGpsDto): Promise<Gps> {
     const gps = await this.findOne(id);
 
     if (updateGpsDto.busId) {
@@ -69,7 +74,7 @@ export class GpsService {
     return await this.gpsRepository.save(updated);
   }
 
-  async remove(id: number): Promise<{ message: string }> {
+  async remove(id: string): Promise<{ message: string }> {
     const gps = await this.findOne(id);
     await this.gpsRepository.remove(gps);
     return { message: `GPS #${id} eliminado correctamente` };

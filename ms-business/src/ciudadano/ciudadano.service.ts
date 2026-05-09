@@ -35,7 +35,7 @@ export class CiudadanoService {
         });
     }
 
-    async findOne(id: number): Promise<Ciudadano> {
+    async findOne(id: string): Promise<Ciudadano> {
         const ciudadano = await this.ciudadanoRepository.findOne({
             where: { id },
             relations: ['persona', 'direccion']
@@ -46,7 +46,7 @@ export class CiudadanoService {
         return ciudadano;
     }
 
-    async update(id: number, updateCiudadanoDto: UpdateCiudadanoDto): Promise<Ciudadano> {
+    async update(id: string, updateCiudadanoDto: UpdateCiudadanoDto): Promise<Ciudadano> {
         const ciudadano = await this.findOne(id);
 
         // Solo actualizamos la persona si llega un personaId nuevo
@@ -67,7 +67,7 @@ export class CiudadanoService {
         return await this.ciudadanoRepository.save(ciudadano);
     }
 
-    async remove(id: number): Promise<{ message: string }> {
+    async remove(id: string): Promise<{ message: string }> {
         const ciudadano = await this.findOne(id);
         await this.ciudadanoRepository.remove(ciudadano);
         return { message: `Ciudadano #${id} eliminado correctamente.` };

@@ -35,7 +35,7 @@ export class DireccionService {
         });
     }
 
-    async findOne(id: number): Promise<Direccion> {
+    async findOne(id: string): Promise<Direccion> {
         const direccion = await this.direccionRepository.findOne({
             where: { id },
             relations: ['ciudadano']
@@ -46,7 +46,7 @@ export class DireccionService {
         return direccion;
     }
 
-    async update(id: number, updateDireccionDto: UpdateDireccionDto): Promise<Direccion> {
+    async update(id: string, updateDireccionDto: UpdateDireccionDto): Promise<Direccion> {
         const direccion = await this.findOne(id);
 
         // Solo actualizamos la persona si llega un personaId nuevo
@@ -67,7 +67,7 @@ export class DireccionService {
         return await this.direccionRepository.save(direccion);
     }
 
-    async remove(id: number): Promise<{ message: string }> {
+    async remove(id: string): Promise<{ message: string }> {
         const direccion = await this.findOne(id);
         await this.direccionRepository.remove(direccion);
         return { message: `Direccion #${id} eliminada correctamente.` };

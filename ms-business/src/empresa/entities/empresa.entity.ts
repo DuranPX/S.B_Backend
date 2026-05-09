@@ -5,7 +5,7 @@ import { Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "t
 @Entity('empresa')
 export class Empresa {
     @PrimaryGeneratedColumn('uuid')
-    id?: number;
+    id?: string;
 
     @Column()
     nombre?: string;
@@ -17,5 +17,5 @@ export class Empresa {
     bus?: Bus[];
 
     @ManyToMany(() => Conductor, (conductor) => conductor.empresas)
-    conductores: Conductor[];
+    conductores?: Conductor[];
 }

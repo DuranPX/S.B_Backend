@@ -4,18 +4,18 @@ import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "ty
 @Entity('direccion')
 export class Direccion {
     @PrimaryGeneratedColumn()
-    id?: number;
+    id?: string;
 
     @OneToOne(() => Ciudadano, (ciudadano) => ciudadano.direccion, {onDelete: 'CASCADE',})
     @JoinColumn({ name: 'ciudadano_id' })
     ciudadano?: Ciudadano;
 
     @Column()
-    calle?: String;
+    calle?: string;
 
     @Column()
-    ciudad?: String;
+    ciudad?: string;
 
     @Column()
-    pais?: String;
+    pais?: string;
 }

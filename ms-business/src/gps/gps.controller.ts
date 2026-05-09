@@ -19,16 +19,16 @@ export class GpsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.gpsService.findOne(+id);
+    return this.gpsService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateGpDto: UpdateGpsDto) {
-    return this.gpsService.update(+id, updateGpDto);
+    return this.gpsService.update(id, updateGpDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.gpsService.remove(+id);
+    return this.gpsService.remove(id);
   }
 }

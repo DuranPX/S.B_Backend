@@ -31,7 +31,7 @@ export class EmpresaService {
         });
     }
 
-    async findOne(id: number): Promise<Empresa> {
+    async findOne(id: string): Promise<Empresa> {
         const empresa = await this.empresaRepository.findOne({
             where: { id },
             relations: ['bus']
@@ -42,7 +42,7 @@ export class EmpresaService {
         return empresa;
     }
 
-    async update(id: number, updateEmpresaDto: UpdateEmpresaDto): Promise<Empresa> {
+    async update(id: string, updateEmpresaDto: UpdateEmpresaDto): Promise<Empresa> {
         const empresa = await this.findOne(id);
 
         // Si se está cambiando el NIT, verificar que no exista
@@ -59,7 +59,7 @@ export class EmpresaService {
         return await this.empresaRepository.save(updated);
     }
 
-    async remove(id: number): Promise<{ message: string }> {
+    async remove(id: string): Promise<{ message: string }> {
         const empresa = await this.findOne(id);
         await this.empresaRepository.remove(empresa);
         return { message: `Empresa #${id} eliminada correctamente. Los buses asociados quedaron disponibles para reasignación.` };

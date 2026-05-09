@@ -1,3 +1,4 @@
+import { Boleto } from "src/boleto/entities/boleto.entity";
 import { Ciudadano } from "src/ciudadano/entities/ciudadano.entity";
 import { MetodoPago } from "src/metodo-pago/entities/metodo-pago.entity";
 import { Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
@@ -5,13 +6,16 @@ import { Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from
 @Entity('metodo_pago_ciudadano')
 export class MetodoPagoCiudadano {
     @PrimaryGeneratedColumn('uuid')
-    id?: number;
+    id?: string;
 
-    @OneToMany(() => MetodoPago, (metodoPago) => metodoPago.metodoPagoCiudadano, { onDelete: 'CASCADE' })
+    @ManyToOne(() => MetodoPago, (metodoPago) => metodoPago.metodoPagoCiudadano, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'metodo_pago_id' })
-    metodoPago: MetodoPago;
+    metodoPago?: MetodoPago;
 
-    @OneToMany(() => Ciudadano, (ciudadano) => ciudadano.metodoPagoCiudadano, { onDelete: 'CASCADE' })
+    @ManyToOne(() => Ciudadano, (ciudadano) => ciudadano.metodoPagoCiudadano, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'ciudadano_id' })
-    ciudadano: Ciudadano;
+    ciudadano?: Ciudadano;
+
+    @OneToMany(() => Boleto, (boleto) => boleto.metodoPagoCiudadano)
+    boletos?: Boleto[];
 }
