@@ -1,4 +1,4 @@
-import { Ciudadano } from "src/ciudadano/entities/ciudadano.entity";
+import { Ciudadano } from "../../ciudadano/entities/ciudadano.entity";
 import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('direccion')

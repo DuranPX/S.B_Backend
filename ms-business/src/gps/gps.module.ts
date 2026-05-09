@@ -3,7 +3,7 @@ import { GpsService } from './gps.service';
 import { GpsController } from './gps.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Gps } from './entities/gp.entity';
-import { BusModule } from 'src/bus/bus.module';
+import { BusModule } from '../bus/bus.module';
 
 @Module({
   imports: [
@@ -14,4 +14,4 @@ import { BusModule } from 'src/bus/bus.module';
   providers: [GpsService],
   exports: [GpsService],
 })
-export class GpsModule {}
+export class GpsModule { }

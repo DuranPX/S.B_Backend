@@ -4,7 +4,7 @@ import { UpdateGpsDto } from './dto/update-gp.dto';
 import { Gps } from './entities/gp.entity';
 import { Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BusService } from 'src/bus/bus.service';
+import { BusService } from '../bus/bus.service';
 
 @Injectable()
 export class GpsService {
@@ -12,23 +12,23 @@ export class GpsService {
     @InjectRepository(Gps)
     private readonly gpsRepository: Repository<Gps>,
     private readonly busService: BusService,
-  ) {}
+  ) { }
 
   async create(createGpsDto: CreateGpsDto): Promise<Gps> {
     // Verificar que busId existe
     if (!createGpsDto.busId) {
-        throw new NotFoundException('El busId es obligatorio');
+      throw new NotFoundException('El busId es obligatorio');
     }
-      
+
     // Verificar que el bus existe
     const bus = await this.busService.findOne(createGpsDto.busId);
 
     // Verificar que no exista otro GPS para ese bus
     const existing = await this.gpsRepository.findOne({
-        where: { bus: { id: createGpsDto.busId } }
+      where: { bus: { id: createGpsDto.busId } }
     });
     if (existing) {
-        throw new ConflictException(`El bus #${createGpsDto.busId} ya tiene un GPS registrado`);
+      throw new ConflictException(`El bus #${createGpsDto.busId} ya tiene un GPS registrado`);
     }
 
     const gps = this.gpsRepository.create();
@@ -57,17 +57,17 @@ export class GpsService {
     const gps = await this.findOne(id);
 
     if (updateGpsDto.busId) {
-        const bus = await this.busService.findOne(updateGpsDto.busId);
+      const bus = await this.busService.findOne(updateGpsDto.busId);
 
-        // Verificar que no exista otro GPS para ese bus
-        const existing = await this.gpsRepository.findOne({
-            where: { bus: { id: updateGpsDto.busId } }
-        });
-        if (existing && existing.id !== id) {
-            throw new ConflictException(`El bus #${updateGpsDto.busId} ya tiene un GPS registrado`);
-        }
+      // Verificar que no exista otro GPS para ese bus
+      const existing = await this.gpsRepository.findOne({
+        where: { bus: { id: updateGpsDto.busId } }
+      });
+      if (existing && existing.id !== id) {
+        throw new ConflictException(`El bus #${updateGpsDto.busId} ya tiene un GPS registrado`);
+      }
 
-        gps.bus = bus;
+      gps.bus = bus;
     }
 
     const updated = Object.assign(gps, updateGpsDto);

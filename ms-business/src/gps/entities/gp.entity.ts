@@ -1,4 +1,4 @@
-import { Bus } from "src/bus/entities/bus.entity";
+import { Bus } from "../../bus/entities/bus.entity";
 import { Column, CreateDateColumn, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('gps')

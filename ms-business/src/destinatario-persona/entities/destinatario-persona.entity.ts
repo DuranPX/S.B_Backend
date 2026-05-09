@@ -1,5 +1,5 @@
-import { Mensaje } from "src/mensaje/entities/mensaje.entity";
-import { Persona } from "src/persona/entities/persona.entity";
+import { Mensaje } from "../../mensaje/entities/mensaje.entity";
+import { Persona } from "../../persona/entities/persona.entity";
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('destinatario_persona')

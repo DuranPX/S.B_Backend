@@ -1,4 +1,4 @@
-import { Conductor } from 'src/conductor/entities/conductor.entity';
+import { Conductor } from '../../conductor/entities/conductor.entity';
 import { DestinatarioPersona } from '../../destinatario-persona/entities/destinatario-persona.entity';
 import { GrupoPersona } from '../../grupo-persona/entities/grupo-persona.entity';
 import { Mensaje } from '../../mensaje/entities/mensaje.entity';
@@ -11,7 +11,15 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Ciudadano } from 'src/ciudadano/entities/ciudadano.entity';
+import { Ciudadano } from '../../ciudadano/entities/ciudadano.entity';
+
+
+export enum TipoDocumento {
+  CC = 'CC',
+  TI = 'TI',
+  CE = 'CE',
+  PAS = 'PAS',
+}
 
 @Entity('personas')
 export class Persona {
@@ -35,8 +43,12 @@ export class Persona {
   @Column({ nullable: false, unique: true })
   email?: string;
 
-  @Column({ nullable: false, enum: ['CC', 'TI', 'CE', 'PAS'] })
-  tipoDocumento: string;
+  @Column({
+    type: 'enum',
+    enum: TipoDocumento,
+    nullable: false,
+  })
+  tipoDocumento: TipoDocumento;
 
   @Column({ nullable: false, unique: true })
   numeroDocumento: string;

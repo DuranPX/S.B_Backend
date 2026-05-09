@@ -1,7 +1,13 @@
-import { DestinatarioGrupo } from "src/destinatario-grupo/entities/destinatario-grupo.entity";
-import { DestinatarioPersona } from "src/destinatario-persona/entities/destinatario-persona.entity";
-import { Persona } from "src/persona/entities/persona.entity";
+import { DestinatarioGrupo } from "../../destinatario-grupo/entities/destinatario-grupo.entity";
+import { DestinatarioPersona } from "../../destinatario-persona/entities/destinatario-persona.entity";
+import { Persona } from "../../persona/entities/persona.entity";
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+
+export enum TipoMensaje {
+  PQRS = 'PQRS',
+  INCIDENTE = 'Reporte de Incidentes',
+  NORMAL = 'Mensaje normal',
+}
 
 @Entity('mensaje')
 export class Mensaje {
@@ -15,8 +21,12 @@ export class Mensaje {
     @Column({ type: 'timestamp', nullable: false })
     fechaEnvio: Date;
 
-    @Column({ type: 'varchar', length: 50, nullable: true, enum: ['PQRS', 'Reporte de Incidentes', 'Mensaje normal'] })
-    tipo: string;
+    @Column({
+      type: 'enum',
+      enum: TipoMensaje,
+      default: TipoMensaje.NORMAL,
+    })
+    tipo: TipoMensaje;
 
     @ManyToOne(() => Persona, (emisor) => emisor.mensajesEnviados, { onDelete: 'RESTRICT' })
     @JoinColumn({ name: 'emisor_id' })

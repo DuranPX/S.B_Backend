@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, IsDateString, IsOptional, IsEnum, IsUUID } from 'class-validator';
+import { TipoMensaje } from '../entities/mensaje.entity';
 
 export class CreateMensajeDto {
   @IsString()
@@ -9,8 +10,8 @@ export class CreateMensajeDto {
   fechaEnvio: Date;
 
   @IsOptional()
-  @IsEnum(['PQRS', 'Reporte de Incidentes', 'Mensaje normal'])
-  tipo?: string;
+  @IsEnum(TipoMensaje)
+  tipo?: TipoMensaje;
 
   @IsUUID()
   emisorId: string;

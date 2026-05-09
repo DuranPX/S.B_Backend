@@ -9,8 +9,8 @@ const dataSource = new DataSource({
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
   // Para CLI (ts-node) y para runtime compilado (dist)
-  entities: ['src/**/*.entity{.ts,.js}', 'dist/**/*.entity.js'],
-  migrations: ['src/migrations/*{.ts,.js}', 'dist/migrations/*.js'],
+  entities: ['src/**/*.entity{.ts,.js}'],
+  migrations: ['src/migrations/*{.ts,.js}'],
   synchronize: false,
 });
 

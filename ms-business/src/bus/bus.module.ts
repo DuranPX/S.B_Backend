@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BusService } from './bus.service';
 import { BusController } from './bus.controller';
 import { Bus } from './entities/bus.entity';
-import { EmpresaModule } from 'src/empresa/empresa.module';
+import { EmpresaModule } from '../empresa/empresa.module';
 
 @Module({
     imports: [
@@ -14,4 +14,4 @@ import { EmpresaModule } from 'src/empresa/empresa.module';
     providers: [BusService],
     exports: [BusService],
 })
-export class BusModule {}
+export class BusModule { }

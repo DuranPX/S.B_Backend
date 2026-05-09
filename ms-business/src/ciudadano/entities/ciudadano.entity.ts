@@ -1,7 +1,7 @@
-import { Boleto } from "src/boleto/entities/boleto.entity";
-import { Direccion } from "src/direccion/entities/direccion.entity";
-import { MetodoPagoCiudadano } from "src/metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity";
-import { Persona } from "src/persona/entities/persona.entity";
+import { Boleto } from "../../boleto/entities/boleto.entity";
+import { Direccion } from "../../direccion/entities/direccion.entity";
+import { MetodoPagoCiudadano } from "../../metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity";
+import { Persona } from "../../persona/entities/persona.entity";
 import { Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('ciudadano')

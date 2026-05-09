@@ -4,8 +4,8 @@ import { Repository } from 'typeorm';
 import { Grupo } from './entities/grupo.entity';
 import { CreateGrupoDto } from './dto/create-grupo.dto';
 import { UpdateGrupoDto } from './dto/update-grupo.dto';
-import { GrupoPersona } from 'src/grupo-persona/entities/grupo-persona.entity';
-import { PersonaService } from 'src/persona/persona.service';
+import { GrupoPersona } from '../grupo-persona/entities/grupo-persona.entity';
+import { PersonaService } from '../persona/persona.service';
 
 @Injectable()
 export class GrupoService {
@@ -15,7 +15,7 @@ export class GrupoService {
         @InjectRepository(GrupoPersona)
         private readonly grupoPersonaRepository: Repository<GrupoPersona>,
         private readonly personaService: PersonaService,
-    ) {}
+    ) { }
 
     async create(createGrupoDto: CreateGrupoDto): Promise<Grupo> {
         const grupo = this.grupoRepository.create({
