@@ -1,26 +1,75 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCiudadanoDto } from './dto/create-ciudadano.dto';
 import { UpdateCiudadanoDto } from './dto/update-ciudadano.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Ciudadano } from './entities/ciudadano.entity';
+import { PersonaService } from 'src/persona/persona.service';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class CiudadanoService {
-  create(createCiudadanoDto: CreateCiudadanoDto) {
-    return 'This action adds a new ciudadano';
-  }
+    constructor (@InjectRepository(Ciudadano)
+      private readonly ciudadanoRepository: Repository<Ciudadano>,
+      private readonly personaService: PersonaService,
+    ) {}
 
-  findAll() {
-    return `This action returns all ciudadano`;
-  }
+    async create(createCiudadanoDto: CreateCiudadanoDto): Promise<Ciudadano> {
+        // Verificar que la persona existe
+        if (!createCiudadanoDto.personaId) {
+            throw new NotFoundException('El personaId es obligatorio');
+        }
+        const persona = await this.personaService.findOne(createCiudadanoDto.personaId);
 
-  findOne(id: number) {
-    return `This action returns a #${id} ciudadano`;
-  }
+        if (persona.ciudadano) {
+            throw new ConflictException(`La persona con id ${createCiudadanoDto.personaId} ya tiene un ciudadano registrado`);
+        }
 
-  update(id: number, updateCiudadanoDto: UpdateCiudadanoDto) {
-    return `This action updates a #${id} ciudadano`;
-  }
+        const ciudadano = this.ciudadanoRepository.create()
+        ciudadano.persona = persona;
+        return await this.ciudadanoRepository.save(ciudadano);
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} ciudadano`;
-  }
+    async findAll(): Promise<Ciudadano[]> {
+        return await this.ciudadanoRepository.find({
+            relations: ['persona', 'direccion', 'metodoPagoCiudadano', 'boletos']
+        });
+    }
+
+    async findOne(id: string): Promise<Ciudadano> {
+        const ciudadano = await this.ciudadanoRepository.findOne({
+            where: { id },
+            relations: ['persona', 'direccion', 'metodoPagoCiudadano', 'boletos']
+        });
+        if (!ciudadano) {
+            throw new NotFoundException(`Ciudadano #${id} no encontrado`);
+        }
+        return ciudadano;
+    }
+
+    async update(id: string, updateCiudadanoDto: UpdateCiudadanoDto): Promise<Ciudadano> {
+        const ciudadano = await this.findOne(id);
+
+        // Solo actualizamos la persona si llega un personaId nuevo
+        if (updateCiudadanoDto.personaId) {
+            const persona = await this.personaService.findOne(updateCiudadanoDto.personaId);
+
+            // Verificar que esa persona no tenga ya otro ciudadano
+            const existing = await this.ciudadanoRepository.findOne({
+                where: { persona: { id: updateCiudadanoDto.personaId } }
+            });
+            if (existing && existing.id !== id) {
+                throw new ConflictException(`La persona con id ${updateCiudadanoDto.personaId} ya tiene un ciudadano registrado`);
+            }
+
+            ciudadano.persona = persona;
+        }
+
+        return await this.ciudadanoRepository.save(ciudadano);
+    }
+
+    async remove(id: string): Promise<{ message: string }> {
+        const ciudadano = await this.findOne(id);
+        await this.ciudadanoRepository.remove(ciudadano);
+        return { message: `Ciudadano #${id} eliminado correctamente.` };
+    }
 }

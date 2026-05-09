@@ -1,26 +1,47 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateMetodoPagoDto } from './dto/create-metodo-pago.dto';
 import { UpdateMetodoPagoDto } from './dto/update-metodo-pago.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { MetodoPago } from './entities/metodo-pago.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class MetodoPagoService {
-  create(createMetodoPagoDto: CreateMetodoPagoDto) {
-    return 'This action adds a new metodoPago';
-  }
+    constructor (@InjectRepository(MetodoPago)
+      private readonly metodoPagoRepository: Repository<MetodoPago>,
+    ) {}
 
-  findAll() {
-    return `This action returns all metodoPago`;
-  }
+    async create(createMetodoPagoDto: CreateMetodoPagoDto): Promise<MetodoPago> {
+        const metodo_pago = this.metodoPagoRepository.create(createMetodoPagoDto);
+        return await this.metodoPagoRepository.save(metodo_pago);
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} metodoPago`;
-  }
+    async findAll(): Promise<MetodoPago[]> {
+        return await this.metodoPagoRepository.find({
+            relations: ['metodoPagoCiudadano']
+        });
+    }
 
-  update(id: number, updateMetodoPagoDto: UpdateMetodoPagoDto) {
-    return `This action updates a #${id} metodoPago`;
-  }
+    async findOne(id: string): Promise<MetodoPago> {
+        const metodo_pago = await this.metodoPagoRepository.findOne({
+            where: { id },
+            relations: ['metodoPagoCiudadano']
+        });
+        if (!metodo_pago) {
+            throw new NotFoundException(`MetodoPago #${id} no encontrado`);
+        }
+        return metodo_pago;
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} metodoPago`;
-  }
+    async update(id: string, updateMetodoPagoDto: UpdateMetodoPagoDto): Promise<MetodoPago> {
+        const metodo_pago = await this.findOne(id);
+        Object.assign(metodo_pago, updateMetodoPagoDto);
+        return await this.metodoPagoRepository.save(metodo_pago);
+    }
+
+    async remove(id: string): Promise<{ message: string }> {
+        const metodo_pago = await this.findOne(id);
+        await this.metodoPagoRepository.remove(metodo_pago);
+        return { message: `MetodoPago #${id} eliminado correctamente.` };
+    }
 }

@@ -19,16 +19,16 @@ export class DireccionController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.direccionService.findOne(+id);
+    return this.direccionService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateDireccionDto: UpdateDireccionDto) {
-    return this.direccionService.update(+id, updateDireccionDto);
+    return this.direccionService.update(id, updateDireccionDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.direccionService.remove(+id);
+    return this.direccionService.remove(id);
   }
 }

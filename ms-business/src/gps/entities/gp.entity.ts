@@ -3,8 +3,8 @@ import { Column, CreateDateColumn, Entity, JoinColumn, OneToOne, PrimaryGenerate
 
 @Entity('gps')
 export class Gps {
-    @PrimaryGeneratedColumn()
-    id?: number;
+    @PrimaryGeneratedColumn('uuid')
+    id?: string;
 
     @OneToOne(() => Bus, (bus) => bus.gps, { onDelete: 'CASCADE'})
     @JoinColumn({ name: 'bus_id' })

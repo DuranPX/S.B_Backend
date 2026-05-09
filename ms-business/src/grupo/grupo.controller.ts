@@ -7,6 +7,10 @@ import { UpdateGrupoDto } from './dto/update-grupo.dto';
 export class GrupoController {
   constructor(private readonly grupoService: GrupoService) {}
 
+  // ─────────────────────────────────────────────
+  // CRUD BÁSICO DE GRUPOS
+  // ─────────────────────────────────────────────
+
   @Post()
   create(@Body() createGrupoDto: CreateGrupoDto) {
     return this.grupoService.create(createGrupoDto);
@@ -19,16 +23,50 @@ export class GrupoController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.grupoService.findOne(+id);
+    return this.grupoService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateGrupoDto: UpdateGrupoDto) {
-    return this.grupoService.update(+id, updateGrupoDto);
+    return this.grupoService.update(id, updateGrupoDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.grupoService.remove(+id);
+    return this.grupoService.remove(id);
+  }
+
+  // ─────────────────────────────────────────────
+  // GESTIÓN DE MIEMBROS
+  // ─────────────────────────────────────────────
+
+  // Agregar miembro al grupo
+  @Post(':id/miembros')
+  addMember(
+    @Param('id') grupoId: string,
+    @Body('personaId') personaId: string
+  ) {
+    return this.grupoService.addMember(grupoId, personaId);
+  }
+
+  // Remover miembro del grupo
+  @Delete(':id/miembros/:personaId')
+  removeMember(
+    @Param('id') grupoId: string,
+    @Param('personaId') personaId: string
+  ) {
+    return this.grupoService.removeMember(grupoId, personaId);
+  }
+
+  // Ver miembros de un grupo
+  @Get(':id/miembros')
+  getMembers(@Param('id') grupoId: string) {
+    return this.grupoService.getMembers(grupoId);
+  }
+
+  // Ver grupos de una persona
+  @Get('persona/:personaId/grupos')
+  getGruposByPersona(@Param('personaId') personaId: string) {
+    return this.grupoService.getGruposByPersona(personaId);
   }
 }

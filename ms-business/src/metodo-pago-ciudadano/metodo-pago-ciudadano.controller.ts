@@ -19,16 +19,16 @@ export class MetodoPagoCiudadanoController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.metodoPagoCiudadanoService.findOne(+id);
+    return this.metodoPagoCiudadanoService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateMetodoPagoCiudadanoDto: UpdateMetodoPagoCiudadanoDto) {
-    return this.metodoPagoCiudadanoService.update(+id, updateMetodoPagoCiudadanoDto);
+    return this.metodoPagoCiudadanoService.update(id, updateMetodoPagoCiudadanoDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.metodoPagoCiudadanoService.remove(+id);
+    return this.metodoPagoCiudadanoService.remove(id);
   }
 }

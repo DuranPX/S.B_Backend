@@ -19,16 +19,16 @@ export class EmpresaController {
 
     @Get(':id')
     findOne(@Param('id') id: string) {
-        return this.empresaService.findOne(+id);
+        return this.empresaService.findOne(id);
     }
 
     @Patch(':id')
     update(@Param('id') id: string, @Body() updateEmpresaDto: UpdateEmpresaDto) {
-        return this.empresaService.update(+id, updateEmpresaDto);
+        return this.empresaService.update(id, updateEmpresaDto);
     }
 
     @Delete(':id')
     remove(@Param('id') id: string) {
-        return this.empresaService.remove(+id);
+        return this.empresaService.remove(id);
     }
 }

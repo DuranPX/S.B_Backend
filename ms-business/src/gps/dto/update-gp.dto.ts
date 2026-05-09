@@ -1,4 +1,4 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateGpDto } from './create-gp.dto';
+import { CreateGpsDto } from './create-gp.dto';
 
-export class UpdateGpDto extends PartialType(CreateGpDto) {}
+export class UpdateGpsDto extends PartialType(CreateGpsDto) {}

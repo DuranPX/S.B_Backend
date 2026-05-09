@@ -19,16 +19,16 @@ export class CiudadanoController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.ciudadanoService.findOne(+id);
+    return this.ciudadanoService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateCiudadanoDto: UpdateCiudadanoDto) {
-    return this.ciudadanoService.update(+id, updateCiudadanoDto);
+    return this.ciudadanoService.update(id, updateCiudadanoDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.ciudadanoService.remove(+id);
+    return this.ciudadanoService.remove(id);
   }
 }
