@@ -26,16 +26,16 @@ export class HistorialController {
     return this.historialService.findAll();
   }
 
-  // Endpoint de historial completo de un ciudadano
-  @Get('ciudadano/:ciudadano_id')
-  findByCiudadano(@Param('ciudadano_id', ParseUUIDPipe) ciudadano_id: string) {
-    return this.historialService.findByciudadano(ciudadano_id);
+  // Historial de un boleto específico
+  @Get('boleto/:boleto_id')
+  findByBoleto(@Param('boleto_id', ParseUUIDPipe) boleto_id: string) {
+    return this.historialService.findByBoleto(boleto_id);
   }
 
-  // Endpoint estrella — historial de viajes de un ciudadano
-  @Get('ciudadano/:ciudadano_id/viajes')
-  findViajesByCiudadano(@Param('ciudadano_id', ParseUUIDPipe) ciudadano_id: string) {
-    return this.historialService.findViajesByCiudadano(ciudadano_id);
+  // Endpoint estrella — todos los viajes registrados
+  @Get('viajes')
+  findViajes() {
+    return this.historialService.findViajes();
   }
 
   @Get(':id')

@@ -12,10 +12,6 @@ import { TipoHistorial } from '../entities/historial.entity';
 
 export class CreateHistorialDto {
   @IsNotEmpty()
-  @IsUUID()
-  ciudadano_id: string;
-
-  @IsNotEmpty()
   @IsEnum(TipoHistorial)
   tipo: TipoHistorial;
 
