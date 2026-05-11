@@ -17,6 +17,11 @@ import { UpdateBoletoDto } from './dto/update-boleto.dto';
 export class BoletoController {
   constructor(private readonly boletoService: BoletoService) {}
 
+  @Get(':id/detalle')
+  findOneDetallado(@Param('id', ParseUUIDPipe) id: string) {
+      return this.boletoService.findOneDetallado(id);
+  }
+
   // Endpoint estrella — compra de boleto
   @Post('comprar')
   comprar(@Body() createBoletoDto: CreateBoletoDto) {

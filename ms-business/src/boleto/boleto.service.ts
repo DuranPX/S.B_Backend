@@ -20,7 +20,7 @@ export class BoletoService {
     private readonly boletoRepository: Repository<Boleto>,
     private readonly programacionService: ProgramacionService,
     private readonly historialService: HistorialService,
-  ) {}
+  ) { }
 
   async comprar(createBoletoDto: CreateBoletoDto): Promise<Boleto> {
     const {
@@ -120,5 +120,30 @@ export class BoletoService {
     }
 
     await this.boletoRepository.remove(boleto);
+  }
+
+  async findOneDetallado(id: string) {
+    const boleto = await this.boletoRepository.findOne({
+      where: { id },
+      relations: [
+        'ciudadano',
+        'ciudadano.persona',
+        'programacion',
+        'programacion.bus',
+        'programacion.bus.gps',
+        'programacion.turno',
+        'programacion.turno.conductor',
+        'programacion.turno.conductor.persona',
+        'paraderoAbordaje',
+        'paraderoDescenso',
+        'metodoPagoCiudadano',
+      ],
+    });
+
+    if (!boleto) {
+      throw new NotFoundException(`Boleto con id ${id} no encontrado`);
+    }
+
+    return boleto;
   }
 }
