@@ -39,7 +39,7 @@ export class Bus {
         enum: EstadoBus,
         default: EstadoBus.OPERATIVO,
     })
-    estado: EstadoBus;
+    estado?: EstadoBus;
 
     @ManyToOne(() => Empresa, (empresa) => empresa.bus, { onDelete: 'SET NULL', nullable: true })
     @JoinColumn({ name: 'empresa_id' })
