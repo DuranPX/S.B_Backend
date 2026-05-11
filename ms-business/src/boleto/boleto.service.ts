@@ -63,14 +63,14 @@ export class BoletoService {
 
   async findAll(): Promise<Boleto[]> {
     return await this.boletoRepository.find({
-      relations: ['ciudadano', 'programacion', 'metodoPago', 'paraderoAbordaje', 'paraderoDescenso'],
+      relations: ['ciudadano', 'programacion', 'metodoPagoCiudadano', 'paraderoAbordaje', 'paraderoDescenso'],
     });
   }
 
   async findOne(id: string): Promise<Boleto> {
     const boleto = await this.boletoRepository.findOne({
       where: { id },
-      relations: ['ciudadano', 'programacion', 'metodoPago', 'paraderoAbordaje', 'paraderoDescenso'],
+      relations: ['ciudadano', 'programacion', 'metodoPagoCiudadano', 'paraderoAbordaje', 'paraderoDescenso'],
     });
 
     if (!boleto) {
