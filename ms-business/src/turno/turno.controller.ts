@@ -7,6 +7,19 @@ import { UpdateTurnoDto } from './dto/update-turno.dto';
 export class TurnoController {
   constructor(private readonly turnoService: TurnoService) {}
 
+  @Get('conductor/:conductorId/activo')
+  findTurnoConductorActivo(@Param('conductorId', ParseUUIDPipe) conductorId: string) {
+      return this.turnoService.findTurnoConductorActivo(conductorId);
+  }
+
+  @Patch(':id/iniciar')
+  iniciarTurno(
+      @Param('id', ParseUUIDPipe) id: string,
+      @Body('observaciones') observaciones?: string
+  ) {
+      return this.turnoService.iniciarTurno(id, observaciones);
+  }
+
   @Post()
   create(@Body() createTurnoDto: CreateTurnoDto) {
     return this.turnoService.create(createTurnoDto);
