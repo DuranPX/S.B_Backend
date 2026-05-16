@@ -24,7 +24,7 @@ export class PersonaService {
     private readonly grupoPersonaRepo: Repository<GrupoPersona>,
     @InjectRepository(Mensaje)
     private readonly mensajeRepo: Repository<Mensaje>,
-  ) {}
+  ) { }
 
   // ── CREATE ─────────────────────────────────────────────────────────────────
   // authId llega del controlador (extraído del JWT), nunca del body.
@@ -64,7 +64,7 @@ export class PersonaService {
   // ── DELETE ─────────────────────────────────────────────────────────────────
   async remove(id: string) {
     const persona = await this.findOne(id);
-    
+
     // Validar que NO tenga conductor asociado
     const conductorCount = await this.conductorRepo.count({ where: { persona: { id } } });
     if (conductorCount > 0) {

@@ -1,0 +1,23 @@
+import { Module } from '@nestjs/common';
+import { TransportGateway } from './transport.gateway';
+import { TransportEventHandlers } from './transport.events';
+import { AuthModule } from '../auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
+@Module({
+  imports: [
+    AuthModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || 'super-secret',
+        signOptions: { expiresIn: '60m' },
+      }),
+    }),
+  ],
+  providers: [TransportGateway, TransportEventHandlers],
+  exports: [TransportGateway],
+})
+export class WebsocketModule {}

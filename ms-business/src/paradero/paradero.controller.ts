@@ -7,6 +7,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ParaderoService } from './paradero.service';
@@ -20,6 +21,16 @@ export class ParaderoController {
   @Post()
   create(@Body() createParaderoDto: CreateParaderoDto) {
     return this.paraderoService.create(createParaderoDto);
+  }
+
+  @Get('cercanos')
+  findNearby(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+    @Query('radius') radius?: string,
+  ) {
+    const radiusMeters = radius ? parseFloat(radius) : 1000;
+    return this.paraderoService.findNearby(parseFloat(lat), parseFloat(lng), radiusMeters);
   }
 
   @Get()
@@ -44,4 +55,4 @@ export class ParaderoController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.paraderoService.remove(id);
   }
-}
+}

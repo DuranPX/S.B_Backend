@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Paradero } from './entities/paradero.entity';
 import { CreateParaderoDto } from './dto/create-paradero.dto';
 import { UpdateParaderoDto } from './dto/update-paradero.dto';
@@ -17,6 +17,7 @@ export class ParaderoService {
     @InjectRepository(Paradero)
     private readonly paraderoRepository: Repository<Paradero>,
     private readonly nodoService: NodoService,
+    private dataSource: DataSource
   ) {}
 
   async create(createParaderoDto: CreateParaderoDto): Promise<Paradero> {
@@ -37,6 +38,30 @@ export class ParaderoService {
     return await this.paraderoRepository.find({
       relations: ['nodo'],
     });
+  }
+
+  // HU-002: Búsqueda geoespacial mediante Haversine
+  async findNearby(lat: number, lng: number, radiusMeters: number = 1000) {
+    const haversine = `
+      ( 6371000 * acos( cos( radians(:lat) ) * cos( radians( p.latitud ) ) 
+      * cos( radians( p.longitud ) - radians(:lng) ) + sin( radians(:lat) ) 
+      * sin( radians( p.latitud ) ) ) )
+    `;
+
+    const paraderos = await this.paraderoRepository.createQueryBuilder('p')
+      .select(['p.id as id', 'p.nombre as nombre', 'p.latitud as latitud', 'p.longitud as longitud'])
+      .addSelect(`${haversine}`, 'distanciaMetros')
+      .leftJoin('p.rutaParaderos', 'rp')
+      .leftJoin('rp.ruta', 'ruta')
+      .addSelect('JSON_ARRAYAGG(JSON_OBJECT("id", ruta.id, "nombre", ruta.nombre))', 'rutas')
+      .having(`distanciaMetros < :radiusMeters`)
+      .setParameters({ lat, lng, radiusMeters })
+      .groupBy('p.id')
+      .orderBy('distanciaMetros', 'ASC')
+      .limit(5)
+      .getRawMany();
+
+    return paraderos;
   }
 
   async findOne(id: string): Promise<Paradero> {
@@ -70,4 +95,4 @@ export class ParaderoService {
     const paradero = await this.findOne(id);
     await this.paraderoRepository.remove(paradero);
   }
-}
+}

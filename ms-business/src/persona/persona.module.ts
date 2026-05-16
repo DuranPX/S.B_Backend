@@ -19,4 +19,4 @@ import { Mensaje } from '../mensaje/entities/mensaje.entity';
   // sin duplicar código. Importar PersonaModule en cada módulo hijo.
   exports: [PersonaService],
 })
-export class PersonaModule {}
+export class PersonaModule { }
