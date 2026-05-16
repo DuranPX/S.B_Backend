@@ -27,7 +27,7 @@ import { PersonaService } from './persona.service';
 // ──────────────────────────────────────────────────────────────────────────────
 @Controller('persona')
 export class PersonaController {
-  constructor(private readonly personaService: PersonaService) {}
+  constructor(private readonly personaService: PersonaService) { }
 
   // POST /persona
   @Post()

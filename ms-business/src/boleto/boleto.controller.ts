@@ -7,20 +7,38 @@ import {
   Delete,
   Body,
   Param,
+  UseGuards,
+  Request,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { BoletoService } from './boleto.service';
 import { CreateBoletoDto } from './dto/create-boleto.dto';
 import { UpdateBoletoDto } from './dto/update-boleto.dto';
+import { CrearAbordajeDto } from './dto/crear-abordaje.dto';
+import { RegistrarDescensoDto } from './dto/registrar-descenso.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('boletos')
 export class BoletoController {
   constructor(private readonly boletoService: BoletoService) {}
 
-  // Endpoint estrella — compra de boleto
-  @Post('comprar')
-  comprar(@Body() createBoletoDto: CreateBoletoDto) {
-    return this.boletoService.comprar(createBoletoDto);
+  @UseGuards(JwtAuthGuard)
+  @Post('abordaje')
+  comprar(@Request() req, @Body() dto: CrearAbordajeDto) {
+    // req.user viene del JWT. Validamos si tiene un authId válido.
+    const authId = req.user.authId || req.user.sub || req.user.id;
+    return this.boletoService.procesarAbordaje(authId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/descenso')
+  registrarDescenso(
+    @Request() req,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RegistrarDescensoDto,
+  ) {
+    const authId = req.user.authId || req.user.sub || req.user.id;
+    return this.boletoService.registrarDescenso(id, authId, dto);
   }
 
   @Get()
@@ -33,7 +51,6 @@ export class BoletoController {
     return this.boletoService.findOne(id);
   }
 
-  // Endpoint para cancelar un boleto
   @Patch(':id/cancelar')
   cancelar(@Param('id', ParseUUIDPipe) id: string) {
     return this.boletoService.cancelar(id);
@@ -51,4 +68,4 @@ export class BoletoController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.boletoService.remove(id);
   }
-}
+}

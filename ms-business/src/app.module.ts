@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PersonaModule } from './persona/persona.module';
@@ -27,6 +28,8 @@ import { FotoModule } from './foto/foto.module';
 import { MetodoPagoModule } from './metodo-pago/metodo-pago.module';
 import { MetodoPagoCiudadanoModule } from './metodo-pago-ciudadano/metodo-pago-ciudadano.module';
 import { BoletoModule } from './boleto/boleto.module';
+import { AuthModule } from './auth/auth.module';
+import { WebsocketModule } from './websocket/websocket.module';
 import { RutaNodoModule } from './ruta_nodo/ruta_nodo.module';
 import { RutaParaderoModule } from './ruta_paradero/ruta_paradero.module';
 
@@ -34,6 +37,7 @@ import { RutaParaderoModule } from './ruta_paradero/ruta_paradero.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    EventEmitterModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -75,8 +79,10 @@ import { RutaParaderoModule } from './ruta_paradero/ruta_paradero.module';
     RutaNodoModule,
     RutaParaderoModule,
     RutaNodoModule,
+    AuthModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
