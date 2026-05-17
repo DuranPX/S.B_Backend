@@ -40,10 +40,22 @@ export class BoletoController {
     const authId = req.user.authId || req.user.sub || req.user.id;
     return this.boletoService.registrarDescenso(id, authId, dto);
   }
-
+  
   @Get()
   findAll() {
     return this.boletoService.findAll();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('mis-viajes')
+  getMisViajes(@Request() req) {
+    const authId = req.user.authId || req.user.sub;
+    return this.boletoService.findByAuthId(authId);
+  }
+
+  @Get(':id/detalle')
+  findOneDetallado(@Param('id', ParseUUIDPipe) id: string) {
+    return this.boletoService.findOneDetallado(id);
   }
 
   @Get(':id')

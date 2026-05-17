@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Bus } from './entities/bus.entity';
 import { CreateBusDto } from './dto/create-bus.dto';
 import { UpdateBusDto } from './dto/update-bus.dto';
 import { EmpresaService } from '../empresa/empresa.service';
+import { Conductor } from 'src/conductor/entities/conductor.entity';
 
 @Injectable()
 export class BusService {
@@ -12,10 +13,10 @@ export class BusService {
         @InjectRepository(Bus)
         private readonly busRepository: Repository<Bus>,
         private readonly empresaService: EmpresaService,
+        private readonly dataSource: DataSource,
     ) { }
 
-    async create(createBusDto: CreateBusDto): Promise<Bus> {
-        // Verificar placa duplicada
+    async create(createBusDto: CreateBusDto, authId?: string): Promise<Bus> {
         const existing = await this.busRepository.findOne({
             where: { placa: createBusDto.placa }
         });
@@ -23,16 +24,23 @@ export class BusService {
             throw new ConflictException(`Ya existe un bus con la placa ${createBusDto.placa}`);
         }
 
-        // Verificar que la empresa existe si se proporciona
         let empresa;
         if (createBusDto.empresaId) {
+            // Si viene el id explícito, usarlo
             empresa = await this.empresaService.findOne(createBusDto.empresaId);
+        } else if (authId) {
+            // Auto-asociar la empresa del conductor/admin autenticado
+            const conductor = await this.dataSource.getRepository(Conductor).findOne({
+                where: { persona: { authId } },
+                relations: ['empresas'],
+            });
+            if (conductor?.empresas?.length) {
+                empresa = conductor.empresas[0];
+            }
         }
 
         const bus = this.busRepository.create(createBusDto);
-        if (empresa) {
-            bus.empresa = empresa;
-        }
+        if (empresa) bus.empresa = empresa;
 
         return await this.busRepository.save(bus);
     }
