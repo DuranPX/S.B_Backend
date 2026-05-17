@@ -68,4 +68,4 @@ export class BoletoController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.boletoService.remove(id);
   }
-}
+}
