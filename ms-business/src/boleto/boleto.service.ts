@@ -95,6 +95,7 @@ export class BoletoService {
         metodoPagoCiudadano: { id: dto.metodoPagoId } as any,
         paraderoAbordaje: { id: dto.paraderoId } as any,
         monto_pagado: tarifa,
+        hora_abordaje: new Date(),
         estado: EstadoBoleto.ACTIVO
       });
 
@@ -162,6 +163,7 @@ export class BoletoService {
       // Actualizar Boleto
       boleto.estado = EstadoBoleto.COMPLETADO;
       boleto.paraderoDescenso = { id: dto.paraderoDescensoId } as any;
+      boleto.hora_descenso = new Date();
       await queryRunner.manager.save(boleto);
 
       // Liberar cupo en la Programacion

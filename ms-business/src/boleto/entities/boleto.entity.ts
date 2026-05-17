@@ -36,7 +36,7 @@ export class Boleto {
   @JoinColumn({ name: 'paradero_abordaje_id' })
   paraderoAbordaje: Paradero;
 
-  @ManyToOne(() => Paradero, { onDelete: 'RESTRICT', nullable: false })
+  @ManyToOne(() => Paradero, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'paradero_descenso_id' })
   paraderoDescenso: Paradero;
 
