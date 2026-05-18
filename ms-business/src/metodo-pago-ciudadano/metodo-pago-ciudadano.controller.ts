@@ -20,11 +20,6 @@ export class MetodoPagoCiudadanoController {
     return this.metodoPagoCiudadanoService.verificarEpayco(refPayco, authId);
   }
 
-  @Post('epayco-webhook')
-  epaycoWebhook(@Body() payload: any) {
-    return this.metodoPagoCiudadanoService.epaycoWebhook(payload);
-  }
-
   @Get()
   findAll() {
     return this.metodoPagoCiudadanoService.findAll();
