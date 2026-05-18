@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { Persona, TipoDocumento } from '../persona/entities/persona.entity';
 import { Ciudadano } from '../ciudadano/entities/ciudadano.entity';
+import { Conductor } from '../conductor/entities/conductor.entity';
 import { MetodoPagoCiudadano } from '../metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity';
 import { MetodoPago, MetodoPagoTipo } from '../metodo-pago/entities/metodo-pago.entity';
 
@@ -65,6 +66,7 @@ export class AuthService {
           });
           await queryRunner.manager.save(billetera);
         }
+
       } else {
         // Actualizar datos si es necesario
         if (jwtPayload.email && persona.email !== jwtPayload.email) {
