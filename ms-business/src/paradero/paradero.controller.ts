@@ -9,15 +9,18 @@ import {
   Param,
   Query,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ParaderoService } from './paradero.service';
 import { CreateParaderoDto } from './dto/create-paradero.dto';
 import { UpdateParaderoDto } from './dto/update-paradero.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('paraderos')
 export class ParaderoController {
-  constructor(private readonly paraderoService: ParaderoService) {}
+  constructor(private readonly paraderoService: ParaderoService) { }
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() createParaderoDto: CreateParaderoDto) {
     return this.paraderoService.create(createParaderoDto);
@@ -55,4 +58,4 @@ export class ParaderoController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.paraderoService.remove(id);
   }
-}
+}

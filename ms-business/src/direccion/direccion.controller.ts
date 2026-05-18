@@ -5,7 +5,7 @@ import { UpdateDireccionDto } from './dto/update-direccion.dto';
 
 @Controller('direccion')
 export class DireccionController {
-  constructor(private readonly direccionService: DireccionService) {}
+  constructor(private readonly direccionService: DireccionService) { }
 
   @Post()
   create(@Body() createDireccionDto: CreateDireccionDto) {

@@ -268,4 +268,30 @@ export class BoletoService {
 
     return boleto;
   }
+
+  async findByAuthId(authId: string): Promise<Boleto[]> {
+    const persona = await this.dataSource.getRepository(Persona).findOne({
+      where: { authId },
+      relations: ['ciudadano'],
+    });
+
+    if (!persona || !persona.ciudadano) return [];
+
+    return await this.boletoRepository.find({
+      where: {
+        ciudadano: { id: persona.ciudadano.id },
+        estado: EstadoBoleto.COMPLETADO,
+      },
+      relations: [
+        'paraderoAbordaje',
+        'paraderoDescenso',
+        'programacion',
+        'programacion.bus',
+        'programacion.turno',
+        'programacion.turno.conductor',
+        'programacion.turno.conductor.persona',
+      ],
+      order: { hora_descenso: 'DESC' },
+    });
+  }
 }
