@@ -1,23 +1,38 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, UseGuards, Request } from '@nestjs/common';
 import { TurnoService } from './turno.service';
 import { CreateTurnoDto } from './dto/create-turno.dto';
 import { UpdateTurnoDto } from './dto/update-turno.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('turno')
 export class TurnoController {
   constructor(private readonly turnoService: TurnoService) {}
 
-  @Get('conductor/:conductorId/activo')
-  findTurnoConductorActivo(@Param('conductorId', ParseUUIDPipe) conductorId: string) {
-      return this.turnoService.findTurnoConductorActivo(conductorId);
+  // ── Endpoint HU-006: obtiene el turno del conductor autenticado por JWT ──
+  @UseGuards(JwtAuthGuard)
+  @Get('conductor/activo')
+  findTurnoActivo(@Request() req) {
+    const authId = req.user.authId || req.user.sub;
+    return this.turnoService.findTurnoActivoPorAuthId(authId);
   }
-
+  
+  // ── Endpoint HU-006: inicia el turno + emite SHIFT_STARTED por WebSocket ──
+  @UseGuards(JwtAuthGuard)
   @Patch(':id/iniciar')
   iniciarTurno(
       @Param('id', ParseUUIDPipe) id: string,
       @Body('observaciones') observaciones?: string
   ) {
       return this.turnoService.iniciarTurno(id, observaciones);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/finalizar')
+  finalizarTurno(
+      @Param('id', ParseUUIDPipe) id: string,
+      @Body('observaciones') observaciones?: string,
+  ) {
+      return this.turnoService.finalizarTurno(id, observaciones);
   }
 
   @Post()

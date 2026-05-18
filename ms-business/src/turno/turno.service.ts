@@ -6,6 +6,7 @@ import { UpdateTurnoDto } from './dto/update-turno.dto';
 import { Turno } from './entities/turno.entity';
 import { Conductor } from '../conductor/entities/conductor.entity';
 import { Bus } from '../bus/entities/bus.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class TurnoService {
@@ -16,6 +17,7 @@ export class TurnoService {
     private readonly conductorRepository: Repository<Conductor>,
     @InjectRepository(Bus)
     private readonly busRepository: Repository<Bus>,
+    private readonly eventEmitter: EventEmitter2,
   ) { }
 
   async create(createTurnoDto: CreateTurnoDto) {
@@ -78,7 +80,17 @@ export class TurnoService {
     return await this.turnoRepository.remove(turno);
   }
 
-  async findTurnoConductorActivo(conductorId: string) {
+  async findTurnoActivoPorAuthId(authId: string) {
+    // Buscar la persona por authId para obtener el conductor
+    const conductor = await this.conductorRepository.findOne({
+      where: { persona: { authId } },
+      relations: ['persona'],
+    });
+
+    if (!conductor) {
+      throw new NotFoundException('No se encontró un conductor asociado a este usuario');
+    }
+
     const ahora = new Date();
     const inicioDia = new Date(ahora);
     inicioDia.setHours(0, 0, 0, 0);
@@ -87,17 +99,15 @@ export class TurnoService {
 
     const turno = await this.turnoRepository.findOne({
       where: {
-        conductor: { id: conductorId },
+        conductor: { id: conductor.id },
         estado: 'PROGRAMADO',
-        fecha_inicio_programada: Between(inicioDia, finDia)
+        fecha_inicio_programada: Between(inicioDia, finDia),
       },
-      relations: ['conductor', 'bus', 'bus.gps']
+      relations: ['conductor', 'conductor.persona', 'bus', 'bus.gps'],
     });
 
     if (!turno) {
-      throw new NotFoundException(
-        `No hay turnos programados para el conductor ${conductorId} en el día de hoy`
-      );
+      throw new NotFoundException('No hay turnos programados para hoy');
     }
 
     return turno;
@@ -114,10 +124,44 @@ export class TurnoService {
 
     turno.estado = 'EN_CURSO';
     turno.fecha_inicio_real = new Date();
-    if (observaciones) {
-      turno.observaciones = observaciones;
+    if (observaciones) turno.observaciones = observaciones;
+
+    const saved = await this.turnoRepository.save(turno);
+
+    // Emitir evento SHIFT_STARTED — el gateway lo enviará por WebSocket al conductor
+    this.eventEmitter.emit('shift.started', {
+      turnoId: saved.id,
+      conductorId: saved.conductor?.id,
+      busId: saved.bus?.id,
+      horaInicio: saved.fecha_inicio_real,
+    });
+
+    return saved;
+  }
+
+  async finalizarTurno(id: string, observaciones?: string) {
+    const turno = await this.findOne(id);
+
+    if (turno.estado !== 'EN_CURSO') {
+        throw new BadRequestException(
+            `El turno no puede finalizarse porque está en estado: ${turno.estado}`
+        );
     }
 
-    return await this.turnoRepository.save(turno);
+    turno.estado = 'FINALIZADO';
+    turno.fecha_fin_real = new Date();
+    if (observaciones) turno.observaciones = observaciones;
+
+    const saved = await this.turnoRepository.save(turno);
+
+    // Emitir evento para notificar que el turno finalizó
+    this.eventEmitter.emit('shift.ended', {
+        turnoId: saved.id,
+        conductorId: saved.conductor?.id,
+        busId: saved.bus?.id,
+        horaFin: saved.fecha_fin_real,
+    });
+
+    return saved;
   }
 }
