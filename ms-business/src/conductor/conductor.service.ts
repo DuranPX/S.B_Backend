@@ -28,18 +28,9 @@ export class ConductorService {
 
   async create(dto: CreateConductorDto): Promise<Conductor> {
     // 1. Validar que la Persona exista
-    // Si no existe, findOne lanzará un NotFoundException
     const persona = await this.personaService.findOne(dto.personaId);
 
-    // 2. Validar que la Empresa exista
-    const empresa = await this.empresaRepo.findOneBy({ id: dto.empresaId });
-    if (!empresa) {
-      throw new NotFoundException(
-        `Empresa con id "${dto.empresaId}" no encontrada. Un conductor no puede quedar huérfano de empresa.`,
-      );
-    }
-
-    // 3. Validar que la Persona no sea ya un conductor (relación 1:1)
+    // 2. Validar que la Persona no sea ya un conductor (relación 1:1)
     const existeConductor = await this.conductorRepo.findOne({
       where: { persona: { id: dto.personaId } },
     });
@@ -50,12 +41,22 @@ export class ConductorService {
       );
     }
 
+    // 3. Validar Empresa (Opcional en el registro inicial de licencia)
+    let empresas: Empresa[] = [];
+    if (dto.empresaId) {
+      const empresa = await this.empresaRepo.findOneBy({ id: dto.empresaId });
+      if (!empresa) {
+        throw new NotFoundException(`Empresa con id "${dto.empresaId}" no encontrada.`);
+      }
+      empresas = [empresa];
+    }
+
     // 4. Crear el Conductor
     const conductor = this.conductorRepo.create({
       licencia: dto.licencia,
       activo: dto.activo ?? true,
       persona: persona,
-      empresas: [empresa], // Asignamos la empresa (en un array por ser ManyToMany)
+      empresas: empresas,
     });
 
     return this.conductorRepo.save(conductor);
@@ -86,7 +87,25 @@ export class ConductorService {
     if (dto.licencia !== undefined) conductor.licencia = dto.licencia;
     if (dto.activo !== undefined) conductor.activo = dto.activo;
 
-    return this.conductorRepo.save(conductor);
+    if (dto.empresasIds) {
+      const empresas = await this.empresaRepo.findByIds(dto.empresasIds);
+      if (empresas.length === 0) {
+        throw new NotFoundException('No se encontraron empresas con los IDs proporcionados.');
+      }
+      conductor.empresas = empresas;
+    }
+
+    const savedConductor = await this.conductorRepo.save(conductor);
+
+    if (dto.turnosIds && dto.turnosIds.length > 0) {
+      const turnos = await this.turnoRepo.findByIds(dto.turnosIds);
+      for (const turno of turnos) {
+        turno.conductor = savedConductor;
+        await this.turnoRepo.save(turno);
+      }
+    }
+
+    return this.findOne(id);
   }
 
   async remove(id: string) {

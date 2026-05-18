@@ -13,9 +13,9 @@ export class CreateConductorDto {
   @IsUUID('4', { message: 'El ID de la persona debe ser un UUID válido' })
   personaId: string;
 
-  @IsNotEmpty({ message: 'El ID de la empresa es obligatorio' })
+  @IsOptional()
   @IsUUID('4', { message: 'El ID de la empresa debe ser un UUID válido' })
-  empresaId: string;
+  empresaId?: string;
 
   @IsNotEmpty({ message: 'La licencia es obligatoria' })
   @IsString()
