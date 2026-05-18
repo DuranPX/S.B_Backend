@@ -2,6 +2,8 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { Persona, TipoDocumento } from '../persona/entities/persona.entity';
 import { Ciudadano } from '../ciudadano/entities/ciudadano.entity';
+import { MetodoPagoCiudadano } from '../metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity';
+import { MetodoPago, MetodoPagoTipo } from '../metodo-pago/entities/metodo-pago.entity';
 
 @Injectable()
 export class AuthService {
@@ -36,19 +38,67 @@ export class AuthService {
         persona = await queryRunner.manager.save(persona);
 
         // 3. Crear el rol de ciudadano por defecto si el JWT tiene el rol
-        // Si no vienen roles, asumiremos ciudadano para simplificar el flujo o si explícitamente viene Citizen
-        const isCitizen = jwtPayload.roles.includes('Citizen') || jwtPayload.roles.length === 0;
+        const isCitizen = !jwtPayload.roles || jwtPayload.roles.length === 0 || jwtPayload.roles.some((r: any) => typeof r === 'string' && (r.toUpperCase().includes('CITIZEN') || r.toUpperCase().includes('CIUDADANO') || r.toUpperCase().includes('USER')));
         
         if (isCitizen) {
           const ciudadano = queryRunner.manager.create(Ciudadano, { persona });
-          await queryRunner.manager.save(ciudadano);
-          persona.ciudadano = ciudadano;
+          const savedCiudadano = await queryRunner.manager.save(ciudadano);
+          persona.ciudadano = savedCiudadano;
+
+          // --- CREAR BILLETERA VIRTUAL POR DEFECTO PARA EL CIUDADANO ---
+          let metodoPago = await queryRunner.manager.findOne(MetodoPago, {
+            where: { tipo: MetodoPagoTipo.TARJETA }
+          });
+
+          if (!metodoPago) {
+            metodoPago = queryRunner.manager.create(MetodoPago, {
+              tipo: MetodoPagoTipo.TARJETA,
+              descripcion: 'Tarjeta Virtual TuLlave / Metro (Por defecto)'
+            });
+            metodoPago = await queryRunner.manager.save(metodoPago);
+          }
+
+          const billetera = queryRunner.manager.create(MetodoPagoCiudadano, {
+            ciudadano: savedCiudadano,
+            metodoPago: metodoPago,
+            saldo: 20000
+          });
+          await queryRunner.manager.save(billetera);
         }
       } else {
         // Actualizar datos si es necesario
         if (jwtPayload.email && persona.email !== jwtPayload.email) {
           persona.email = jwtPayload.email;
           persona = await queryRunner.manager.save(persona);
+        }
+
+        // Si la persona ya existía pero por algún motivo no se le había creado su Ciudadano o Billetera
+        if (!persona.ciudadano) {
+          const isCitizen = !jwtPayload.roles || jwtPayload.roles.length === 0 || jwtPayload.roles.some((r: any) => typeof r === 'string' && (r.toUpperCase().includes('CITIZEN') || r.toUpperCase().includes('CIUDADANO') || r.toUpperCase().includes('USER')));
+          if (isCitizen) {
+            const ciudadano = queryRunner.manager.create(Ciudadano, { persona });
+            const savedCiudadano = await queryRunner.manager.save(ciudadano);
+            persona.ciudadano = savedCiudadano;
+
+            let metodoPago = await queryRunner.manager.findOne(MetodoPago, {
+              where: { tipo: MetodoPagoTipo.TARJETA }
+            });
+
+            if (!metodoPago) {
+              metodoPago = queryRunner.manager.create(MetodoPago, {
+                tipo: MetodoPagoTipo.TARJETA,
+                descripcion: 'Tarjeta Virtual TuLlave / Metro (Por defecto)'
+              });
+              metodoPago = await queryRunner.manager.save(metodoPago);
+            }
+
+            const billetera = queryRunner.manager.create(MetodoPagoCiudadano, {
+              ciudadano: savedCiudadano,
+              metodoPago: metodoPago,
+              saldo: 20000
+            });
+            await queryRunner.manager.save(billetera);
+          }
         }
       }
       

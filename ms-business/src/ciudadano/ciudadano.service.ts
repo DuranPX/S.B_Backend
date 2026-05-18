@@ -5,11 +5,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Ciudadano } from './entities/ciudadano.entity';
 import { PersonaService } from '../persona/persona.service';
 import { Repository } from 'typeorm';
+import { MetodoPagoCiudadano } from '../metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity';
+import { MetodoPago, MetodoPagoTipo } from '../metodo-pago/entities/metodo-pago.entity';
 
 @Injectable()
 export class CiudadanoService {
-    constructor(@InjectRepository(Ciudadano)
-    private readonly ciudadanoRepository: Repository<Ciudadano>,
+    constructor(
+        @InjectRepository(Ciudadano)
+        private readonly ciudadanoRepository: Repository<Ciudadano>,
+        @InjectRepository(MetodoPagoCiudadano)
+        private readonly metodoPagoCiudadanoRepository: Repository<MetodoPagoCiudadano>,
+        @InjectRepository(MetodoPago)
+        private readonly metodoPagoRepository: Repository<MetodoPago>,
         private readonly personaService: PersonaService,
     ) { }
 
@@ -24,21 +31,49 @@ export class CiudadanoService {
             throw new ConflictException(`La persona con id ${createCiudadanoDto.personaId} ya tiene un ciudadano registrado`);
         }
 
-        const ciudadano = this.ciudadanoRepository.create()
+        const ciudadano = this.ciudadanoRepository.create();
         ciudadano.persona = persona;
-        return await this.ciudadanoRepository.save(ciudadano);
+        const savedCiudadano = await this.ciudadanoRepository.save(ciudadano);
+
+        // --- CREAR BILLETERA VIRTUAL POR DEFECTO ---
+        // Buscar si existe el MetodoPago de tipo TARJETA (o crearlo si no existe en la BD)
+        let metodoPago = await this.metodoPagoRepository.findOne({
+            where: { tipo: MetodoPagoTipo.TARJETA }
+        });
+
+        if (!metodoPago) {
+            metodoPago = this.metodoPagoRepository.create({
+                tipo: MetodoPagoTipo.TARJETA,
+                descripcion: 'Tarjeta Virtual TuLlave / Metro (Por defecto)'
+            });
+            metodoPago = await this.metodoPagoRepository.save(metodoPago);
+        }
+
+        // Crear la billetera virtual asociada con un saldo inicial de regalo para pruebas ($20,000)
+        const billetera = this.metodoPagoCiudadanoRepository.create({
+            ciudadano: savedCiudadano,
+            metodoPago: metodoPago,
+            saldo: 20000
+        });
+        await this.metodoPagoCiudadanoRepository.save(billetera);
+
+        if (!savedCiudadano.id) {
+            throw new Error('No se pudo generar el ID del ciudadano');
+        }
+
+        return await this.findOne(savedCiudadano.id);
     }
 
     async findAll(): Promise<Ciudadano[]> {
         return await this.ciudadanoRepository.find({
-            relations: ['persona', 'direccion', 'metodoPagoCiudadano', 'boletos']
+            relations: ['persona', 'direccion', 'metodoPagoCiudadano', 'metodoPagoCiudadano.metodoPago', 'boletos']
         });
     }
 
     async findOne(id: string): Promise<Ciudadano> {
         const ciudadano = await this.ciudadanoRepository.findOne({
             where: { id },
-            relations: ['persona', 'direccion', 'metodoPagoCiudadano', 'boletos']
+            relations: ['persona', 'direccion', 'metodoPagoCiudadano', 'metodoPagoCiudadano.metodoPago', 'boletos']
         });
         if (!ciudadano) {
             throw new NotFoundException(`Ciudadano #${id} no encontrado`);
