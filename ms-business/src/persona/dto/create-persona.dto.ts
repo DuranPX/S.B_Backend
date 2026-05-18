@@ -6,7 +6,8 @@ import {
   MaxLength,
   MinLength,
   IsEmail,
-  IsEnum
+  IsEnum,
+  IsDateString,
 } from 'class-validator';
 import { TipoDocumento } from '../entities/persona.entity';
 
@@ -22,6 +23,10 @@ export class CreatePersonaDto {
   @MinLength(2)
   @MaxLength(100)
   lastName: string;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'La fecha de nacimiento debe tener formato ISO YYYY-MM-DD' })
+  birthDate?: string;
 
   @IsOptional()
   @IsString()

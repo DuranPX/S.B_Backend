@@ -37,6 +37,9 @@ export class Persona {
   @Column({ name: 'last_name' })
   lastName: string;
 
+  @Column({ name: 'birth_date', type: 'date', nullable: true })
+  birthDate?: Date;
+
   @Column({ nullable: true })
   phone?: string;
 
