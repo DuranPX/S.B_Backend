@@ -26,6 +26,15 @@ export class TurnoController {
       return this.turnoService.iniciarTurno(id, observaciones);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/finalizar')
+  finalizarTurno(
+      @Param('id', ParseUUIDPipe) id: string,
+      @Body('observaciones') observaciones?: string,
+  ) {
+      return this.turnoService.finalizarTurno(id, observaciones);
+  }
+
   @Post()
   create(@Body() createTurnoDto: CreateTurnoDto) {
     return this.turnoService.create(createTurnoDto);

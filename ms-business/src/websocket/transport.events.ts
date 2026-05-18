@@ -62,4 +62,18 @@ export class TransportEventHandlers {
         });
     }
   }
+
+  @OnEvent('shift.ended')
+  handleShiftEnded(event: { turnoId: string, conductorId: string, busId: string, horaFin: Date }) {
+      if (event.conductorId) {
+          this.transportGateway.server
+              .to(`driver:${event.conductorId}`)
+              .emit(WS_EVENTS.SHIFT_STARTED, {
+                  turnoId: event.turnoId,
+                  busId: event.busId,
+                  horaFin: event.horaFin,
+                  mensaje: 'Tu turno ha finalizado.',
+              });
+      }
+  }
 }

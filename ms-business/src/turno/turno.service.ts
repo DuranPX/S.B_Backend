@@ -138,4 +138,30 @@ export class TurnoService {
 
     return saved;
   }
+
+  async finalizarTurno(id: string, observaciones?: string) {
+    const turno = await this.findOne(id);
+
+    if (turno.estado !== 'EN_CURSO') {
+        throw new BadRequestException(
+            `El turno no puede finalizarse porque está en estado: ${turno.estado}`
+        );
+    }
+
+    turno.estado = 'FINALIZADO';
+    turno.fecha_fin_real = new Date();
+    if (observaciones) turno.observaciones = observaciones;
+
+    const saved = await this.turnoRepository.save(turno);
+
+    // Emitir evento para notificar que el turno finalizó
+    this.eventEmitter.emit('shift.ended', {
+        turnoId: saved.id,
+        conductorId: saved.conductor?.id,
+        busId: saved.bus?.id,
+        horaFin: saved.fecha_fin_real,
+    });
+
+    return saved;
+  }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { BusService } from './bus.service';
 import { CreateBusDto } from './dto/create-bus.dto';
 import { UpdateBusDto } from './dto/update-bus.dto';
@@ -10,8 +10,9 @@ export class BusController {
 
     @UseGuards(JwtAuthGuard)
     @Post()
-    create(@Body() createBusDto: CreateBusDto) {
-        return this.busService.create(createBusDto);
+    create(@Request() req, @Body() createBusDto: CreateBusDto) {
+        const authId = req.user.authId || req.user.sub;
+        return this.busService.create(createBusDto, authId);
     }
 
     @Get()
