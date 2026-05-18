@@ -5,10 +5,11 @@ import { MetodoPagoCiudadanoController } from './metodo-pago-ciudadano.controlle
 import { MetodoPagoCiudadano } from './entities/metodo-pago-ciudadano.entity';
 import { CiudadanoModule } from '../ciudadano/ciudadano.module';
 import { MetodoPagoModule } from '../metodo-pago/metodo-pago.module';
+import { Historial } from '../historial/entities/historial.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([MetodoPagoCiudadano]),
+        TypeOrmModule.forFeature([MetodoPagoCiudadano, Historial]),
         CiudadanoModule,
         MetodoPagoModule,
     ],
