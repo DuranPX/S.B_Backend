@@ -41,24 +41,31 @@ export class IncidenteService {
 
   // ← fix 3: era private, ahora es public para que incidente-bus.service lo pueda llamar
   async notificarSupervisor(incidente: Incidente, busPlaca: string): Promise<void> {
-    const gravedadesAltas = [GravedadIncidente.ALTO, GravedadIncidente.CRITICO];
-    if (!gravedadesAltas.includes(incidente.gravedad)) return;
+  console.log('>>> gravedad recibida:', incidente.gravedad);
+  console.log('>>> gravedades altas:', [GravedadIncidente.ALTO, GravedadIncidente.CRITICO]);
 
-    try {
-      await firstValueFrom(
-        this.httpService.post(`${process.env.MS_SECURITY}/api/notify/incident`, {
-          tipo: incidente.tipo,
-          gravedad: incidente.gravedad,
-          descripcion: incidente.descripcion,
-          busPlaca,
-          fecha: new Date(incidente.fecha_reporte).toLocaleString('es-CO'),
-        }),
-      );
-    } catch (err: any) {
-      // No bloqueamos el flujo principal si falla la notificación
-      console.warn('No se pudo notificar al supervisor:', err?.message);
-    }
+  const gravedadesAltas = [GravedadIncidente.ALTO, GravedadIncidente.CRITICO];
+  if (!gravedadesAltas.includes(incidente.gravedad)) {
+    console.log('>>> NO notifica, gravedad no es alta');
+    return;
   }
+
+  console.log('>>> SÍ notifica, llamando a ms-security...');
+  try {
+    await firstValueFrom(
+      this.httpService.post(`${process.env.MS_SECURITY}/api/notify/incident`, {
+        tipo: incidente.tipo,
+        gravedad: incidente.gravedad,
+        descripcion: incidente.descripcion,
+        busPlaca,
+        fecha: new Date(incidente.fecha_reporte).toLocaleString('es-CO'),
+      }),
+    );
+    console.log('>>> Notificación enviada OK');
+  } catch (err: any) {
+    console.warn('No se pudo notificar al supervisor:', err?.message);
+  }
+}
 
   async findAll(): Promise<Incidente[]> {
     return await this.incidenteRepository.find({
