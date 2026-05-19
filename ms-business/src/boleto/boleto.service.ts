@@ -52,7 +52,9 @@ export class BoletoService {
         .where('p.id = :id', { id: dto.programacionId })
         .getOne();
 
-      if (!programacion || programacion.estado !== EstadoProgramacion.PROGRAMADO) {
+      const estadosValidos = [EstadoProgramacion.PROGRAMADO, EstadoProgramacion.EN_CURSO];
+
+      if (!programacion || !estadosValidos.includes(programacion.estado)) {
         throw new BadRequestException('Programación inválida o no está en curso');
       }
 
@@ -125,6 +127,7 @@ export class BoletoService {
       });
 
       return {
+        message: 'Abordaje exitoso',
         id: savedBoleto.id,
         estado: savedBoleto.estado,
         montoCobrado: tarifa,
@@ -188,12 +191,15 @@ export class BoletoService {
       if (programacion) {
         this.eventEmitter.emit('bus.capacity_updated', {
           programacionId: programacion.id,
-          capacidad: programacion.pasajeros_actuales,
+          pasajeros_actuales: programacion.pasajeros_actuales,
           busId: boleto.programacion?.bus?.id
         });
       }
 
-      return { message: 'Descenso registrado exitosamente', boletoId: boleto.id };
+      return {
+        message: 'Viaje completado - Gracias por usar nuestro servicio',
+        boletoId: boleto.id,
+      };
     } catch (err) {
       await queryRunner.rollbackTransaction();
       throw err;
@@ -253,9 +259,7 @@ export class BoletoService {
         'programacion',
         'programacion.bus',
         'programacion.bus.gps',
-        'programacion.turno',
-        'programacion.turno.conductor',
-        'programacion.turno.conductor.persona',
+        'programacion.ruta',
         'paraderoAbordaje',
         'paraderoDescenso',
         'metodoPagoCiudadano',
@@ -287,9 +291,7 @@ export class BoletoService {
         'paraderoDescenso',
         'programacion',
         'programacion.bus',
-        'programacion.turno',
-        'programacion.turno.conductor',
-        'programacion.turno.conductor.persona',
+        'programacion.ruta',
       ],
       order: { hora_descenso: 'DESC' },
     });
