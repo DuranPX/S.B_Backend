@@ -24,7 +24,7 @@ export class BoletoService {
     private readonly boletoRepository: Repository<Boleto>,
     private readonly dataSource: DataSource,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   // HU-003: Abordaje Transaccional con Lock Pesimista
   async procesarAbordaje(authId: string, dto: CrearAbordajeDto): Promise<any> {
@@ -52,20 +52,22 @@ export class BoletoService {
         .where('p.id = :id', { id: dto.programacionId })
         .getOne();
 
-      if (!programacion || programacion.estado !== EstadoProgramacion.PROGRAMADO) {
-         throw new BadRequestException('Programación inválida o no está en curso');
+      const estadosValidos = [EstadoProgramacion.PROGRAMADO, EstadoProgramacion.EN_CURSO];
+
+      if (!programacion || !estadosValidos.includes(programacion.estado)) {
+        throw new BadRequestException('Programación inválida o no está en curso');
       }
 
       if (programacion.pasajeros_actuales >= (programacion.bus.capacidad_total || 0)) {
-         throw new ConflictException('Bus capacity reached');
+        throw new ConflictException('Bus capacity reached');
       }
 
       // 2. Prevenir doble abordaje
       const boletoExistente = await queryRunner.manager.findOne(Boleto, {
-        where: { 
-          programacion: { id: dto.programacionId }, 
-          ciudadano: { id: ciudadanoId }, 
-          estado: EstadoBoleto.ACTIVO 
+        where: {
+          programacion: { id: dto.programacionId },
+          ciudadano: { id: ciudadanoId },
+          estado: EstadoBoleto.ACTIVO
         }
       });
       if (boletoExistente) throw new ConflictException('Active ticket already exists for this trip');
@@ -82,7 +84,7 @@ export class BoletoService {
 
       const tarifa = programacion.ruta.tarifa;
       if (Number(metodoPago.saldo) < Number(tarifa)) {
-         throw new NotAcceptableException('Insufficient balance');
+        throw new NotAcceptableException('Insufficient balance');
       }
 
       // 4. Operaciones atómicas
@@ -117,18 +119,19 @@ export class BoletoService {
 
       // Emitir eventos
       this.eventEmitter.emit('ticket.validated', { boletoId: savedBoleto.id, authId, ciudadanoId });
-      this.eventEmitter.emit('bus.capacity_updated', { 
-        programacionId: programacion.id, 
+      this.eventEmitter.emit('bus.capacity_updated', {
+        programacionId: programacion.id,
         capacidad: programacion.pasajeros_actuales,
         routeId: programacion.ruta.id,
         busId: programacion.bus.id
       });
 
       return {
-        id: savedBoleto.id, 
-        estado: savedBoleto.estado, 
-        montoCobrado: tarifa, 
-        saldoRestante: metodoPago.saldo, 
+        message: 'Abordaje exitoso',
+        id: savedBoleto.id,
+        estado: savedBoleto.estado,
+        montoCobrado: tarifa,
+        saldoRestante: metodoPago.saldo,
         busId: programacion.bus.id
       };
     } catch (err) {
@@ -171,7 +174,7 @@ export class BoletoService {
         .setLock('pessimistic_write')
         .where('p.id = :id', { id: boleto.programacion?.id })
         .getOne();
-      
+
       if (programacion) {
         programacion.pasajeros_actuales = Math.max(0, programacion.pasajeros_actuales - 1);
         await queryRunner.manager.save(programacion);
@@ -180,20 +183,23 @@ export class BoletoService {
       await queryRunner.commitTransaction();
 
       // Emitir Eventos
-      this.eventEmitter.emit('ticket.descended', { 
-        boletoId: boleto.id, 
-        authId, 
-        busId: boleto.programacion?.bus?.id 
+      this.eventEmitter.emit('ticket.descended', {
+        boletoId: boleto.id,
+        authId,
+        busId: boleto.programacion?.bus?.id
       });
       if (programacion) {
-        this.eventEmitter.emit('bus.capacity_updated', { 
-          programacionId: programacion.id, 
-          capacidad: programacion.pasajeros_actuales,
+        this.eventEmitter.emit('bus.capacity_updated', {
+          programacionId: programacion.id,
+          pasajeros_actuales: programacion.pasajeros_actuales,
           busId: boleto.programacion?.bus?.id
         });
       }
 
-      return { message: 'Descenso registrado exitosamente', boletoId: boleto.id };
+      return {
+        message: 'Viaje completado - Gracias por usar nuestro servicio',
+        boletoId: boleto.id,
+      };
     } catch (err) {
       await queryRunner.rollbackTransaction();
       throw err;
@@ -253,9 +259,7 @@ export class BoletoService {
         'programacion',
         'programacion.bus',
         'programacion.bus.gps',
-        'programacion.turno',
-        'programacion.turno.conductor',
-        'programacion.turno.conductor.persona',
+        'programacion.ruta',
         'paraderoAbordaje',
         'paraderoDescenso',
         'metodoPagoCiudadano',
@@ -287,9 +291,7 @@ export class BoletoService {
         'paraderoDescenso',
         'programacion',
         'programacion.bus',
-        'programacion.turno',
-        'programacion.turno.conductor',
-        'programacion.turno.conductor.persona',
+        'programacion.ruta',
       ],
       order: { hora_descenso: 'DESC' },
     });

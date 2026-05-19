@@ -23,7 +23,7 @@ export class CreateProgramacionDto {
 
   @IsNotEmpty()
   @IsString()
-  @IsNotPastDate()
+  @IsNotPastDate('hora_salida')
   fecha: string;
 
   @IsNotEmpty()
