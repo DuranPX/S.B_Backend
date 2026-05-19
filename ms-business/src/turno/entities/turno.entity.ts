@@ -8,9 +8,12 @@ export class Turno {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Conductor, (conductor) => conductor.turnos, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => Conductor, (conductor) => conductor.turnos, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
   @JoinColumn({ name: 'conductor_id' })
-  conductor: Conductor;
+  conductor: Conductor | null;
 
   @ManyToOne(() => Bus, (bus) => bus.turnos, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'bus_id' })

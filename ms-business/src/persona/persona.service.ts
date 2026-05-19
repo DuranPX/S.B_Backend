@@ -71,6 +71,31 @@ export class PersonaService {
   // ── UPDATE ─────────────────────────────────────────────────────────────────
   async update(id: string, dto: UpdatePersonaDto): Promise<Persona> {
     const persona = await this.findOne(id); // lanza NotFoundException si no existe
+    
+    // Validar email duplicado (si se intenta cambiar)
+    if (dto.email !== undefined && dto.email !== persona.email) {
+      const existeEmail = await this.personaRepo.findOne({
+        where: { email: dto.email },
+      });
+      if (existeEmail) {
+        throw new ConflictException(
+          `Ya existe una persona registrada con el email "${dto.email}".`,
+        );
+      }
+    }
+    
+    // Validar numeroDocumento duplicado (si se intenta cambiar)
+    if (dto.numeroDocumento !== undefined && dto.numeroDocumento !== persona.numeroDocumento) {
+      const existeDocumento = await this.personaRepo.findOne({
+        where: { numeroDocumento: dto.numeroDocumento },
+      });
+      if (existeDocumento) {
+        throw new ConflictException(
+          `Ya existe una persona registrada con el número de documento "${dto.numeroDocumento}".`,
+        );
+      }
+    }
+    
     const payload = { ...dto } as any;
     if (dto.birthDate) {
       payload.birthDate = new Date(dto.birthDate);
