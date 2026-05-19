@@ -12,10 +12,12 @@ import {
 import { IncidenteService } from './incidente.service';
 import { CreateIncidenteDto } from './dto/create-incidente.dto';
 import { UpdateIncidenteDto } from './dto/update-incidente.dto';
+import { AddComentarioDto } from './dto/add-comentario.dto';
+
 
 @Controller('incidentes')
 export class IncidenteController {
-  constructor(private readonly incidenteService: IncidenteService) {}
+  constructor(private readonly incidenteService: IncidenteService) { }
 
   @Post()
   create(@Body() createIncidenteDto: CreateIncidenteDto) {
@@ -43,5 +45,13 @@ export class IncidenteController {
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.incidenteService.remove(id);
+  }
+
+  @Post(':id/comentarios')
+  addComentario(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() addComentarioDto: AddComentarioDto,
+  ) {
+    return this.incidenteService.addComentario(id, addComentarioDto);
   }
 }
