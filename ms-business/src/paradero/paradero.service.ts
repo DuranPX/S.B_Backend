@@ -21,7 +21,6 @@ export class ParaderoService {
   ) { }
 
   async create(createParaderoDto: CreateParaderoDto): Promise<Paradero> {
-
     const { nodo_id, codigo, ...rest } = createParaderoDto;
 
     // Validar código duplicado
@@ -100,7 +99,6 @@ export class ParaderoService {
   ): Promise<Paradero> {
 
     const paradero = await this.findOne(id);
-
     const { nodo_id, codigo, ...rest } = updateParaderoDto;
 
     // Validar código duplicado SOLO si cambia
@@ -129,7 +127,6 @@ export class ParaderoService {
 
     return await this.paraderoRepository.save(paradero);
   }
-
   async remove(id: string): Promise<void> {
     const paradero = await this.findOne(id);
     await this.paraderoRepository.remove(paradero);
