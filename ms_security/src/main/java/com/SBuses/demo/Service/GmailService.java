@@ -71,12 +71,14 @@ public class GmailService {
     // Enviar correo HTML
     public void sendEmail(String to, String subject, String htmlBody) {
         try {
+            System.out.println(">>> Intentando enviar correo a: " + to);
             Gmail service = buildGmailService();
             Message message = createMessage(to, subject, htmlBody);
             service.users().messages().send("me", message).execute();
+            System.out.println(">>> Correo enviado exitosamente a: " + to);
         } catch (Exception e) {
-            // No lanzamos excepción para no bloquear el flujo principal
-            System.err.println("Error al enviar correo: " + e.getMessage());
+            System.out.println(">>> ERROR al enviar correo: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
