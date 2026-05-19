@@ -62,7 +62,10 @@ export class Incidente {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   fecha_reporte: Date;
 
-  @Column({ type: 'json', nullable: true, default: [] })
+  @Column({
+    type: 'json',
+    nullable: true,
+  })
   comentarios: Comentario[];
 
   @OneToMany(() => IncidenteBus, (incidenteBus) => incidenteBus.incidente)

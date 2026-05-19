@@ -210,7 +210,7 @@ export class BoletoService {
 
   async findAll(): Promise<Boleto[]> {
     return await this.boletoRepository.find({
-      relations: ['ciudadano', 'programacion', 'metodoPagoCiudadano', 'paraderoAbordaje', 'paraderoDescenso'],
+      relations: ['ciudadano', 'programacion', 'metodoPagoCiudadano', 'metodoPagoCiudadano.metodoPago', 'paraderoAbordaje', 'paraderoDescenso'],
     });
   }
 
@@ -284,7 +284,6 @@ export class BoletoService {
     return await this.boletoRepository.find({
       where: {
         ciudadano: { id: persona.ciudadano.id },
-        estado: EstadoBoleto.COMPLETADO,
       },
       relations: [
         'paraderoAbordaje',

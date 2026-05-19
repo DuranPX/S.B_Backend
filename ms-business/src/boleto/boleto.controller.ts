@@ -21,7 +21,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('boletos')
 export class BoletoController {
-  constructor(private readonly boletoService: BoletoService) {}
+  constructor(private readonly boletoService: BoletoService) { }
 
   @UseGuards(JwtAuthGuard)
   @Post('abordaje')
@@ -41,7 +41,7 @@ export class BoletoController {
     const authId = req.user.authId || req.user.sub || req.user.id;
     return this.boletoService.registrarDescenso(id, authId, dto);
   }
-  
+
   @Get()
   findAll() {
     return this.boletoService.findAll();
@@ -59,9 +59,10 @@ export class BoletoController {
     return this.boletoService.findOneDetallado(id);
   }
 
-  @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.boletoService.findOne(id);
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  findMyTickets(@Request() req) {
+    return this.boletoService.findByAuthId(req.user.authId);
   }
 
   @Patch(':id/cancelar')
