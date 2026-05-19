@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, Between } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Boleto, EstadoBoleto } from './entities/boleto.entity';
 import { Programacion, EstadoProgramacion } from '../programacion/entities/programacion.entity';
@@ -24,7 +24,7 @@ export class BoletoService {
     private readonly boletoRepository: Repository<Boleto>,
     private readonly dataSource: DataSource,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   // HU-003: Abordaje Transaccional con Lock Pesimista
   async procesarAbordaje(authId: string, dto: CrearAbordajeDto): Promise<any> {
@@ -53,19 +53,19 @@ export class BoletoService {
         .getOne();
 
       if (!programacion || programacion.estado !== EstadoProgramacion.PROGRAMADO) {
-         throw new BadRequestException('Programación inválida o no está en curso');
+        throw new BadRequestException('Programación inválida o no está en curso');
       }
 
       if (programacion.pasajeros_actuales >= (programacion.bus.capacidad_total || 0)) {
-         throw new ConflictException('Bus capacity reached');
+        throw new ConflictException('Bus capacity reached');
       }
 
       // 2. Prevenir doble abordaje
       const boletoExistente = await queryRunner.manager.findOne(Boleto, {
-        where: { 
-          programacion: { id: dto.programacionId }, 
-          ciudadano: { id: ciudadanoId }, 
-          estado: EstadoBoleto.ACTIVO 
+        where: {
+          programacion: { id: dto.programacionId },
+          ciudadano: { id: ciudadanoId },
+          estado: EstadoBoleto.ACTIVO
         }
       });
       if (boletoExistente) throw new ConflictException('Active ticket already exists for this trip');
@@ -82,7 +82,7 @@ export class BoletoService {
 
       const tarifa = programacion.ruta.tarifa;
       if (Number(metodoPago.saldo) < Number(tarifa)) {
-         throw new NotAcceptableException('Insufficient balance');
+        throw new NotAcceptableException('Insufficient balance');
       }
 
       // 4. Operaciones atómicas
@@ -117,18 +117,18 @@ export class BoletoService {
 
       // Emitir eventos
       this.eventEmitter.emit('ticket.validated', { boletoId: savedBoleto.id, authId, ciudadanoId });
-      this.eventEmitter.emit('bus.capacity_updated', { 
-        programacionId: programacion.id, 
+      this.eventEmitter.emit('bus.capacity_updated', {
+        programacionId: programacion.id,
         capacidad: programacion.pasajeros_actuales,
         routeId: programacion.ruta.id,
         busId: programacion.bus.id
       });
 
       return {
-        id: savedBoleto.id, 
-        estado: savedBoleto.estado, 
-        montoCobrado: tarifa, 
-        saldoRestante: metodoPago.saldo, 
+        id: savedBoleto.id,
+        estado: savedBoleto.estado,
+        montoCobrado: tarifa,
+        saldoRestante: metodoPago.saldo,
         busId: programacion.bus.id
       };
     } catch (err) {
@@ -171,7 +171,7 @@ export class BoletoService {
         .setLock('pessimistic_write')
         .where('p.id = :id', { id: boleto.programacion?.id })
         .getOne();
-      
+
       if (programacion) {
         programacion.pasajeros_actuales = Math.max(0, programacion.pasajeros_actuales - 1);
         await queryRunner.manager.save(programacion);
@@ -180,14 +180,14 @@ export class BoletoService {
       await queryRunner.commitTransaction();
 
       // Emitir Eventos
-      this.eventEmitter.emit('ticket.descended', { 
-        boletoId: boleto.id, 
-        authId, 
-        busId: boleto.programacion?.bus?.id 
+      this.eventEmitter.emit('ticket.descended', {
+        boletoId: boleto.id,
+        authId,
+        busId: boleto.programacion?.bus?.id
       });
       if (programacion) {
-        this.eventEmitter.emit('bus.capacity_updated', { 
-          programacionId: programacion.id, 
+        this.eventEmitter.emit('bus.capacity_updated', {
+          programacionId: programacion.id,
           capacidad: programacion.pasajeros_actuales,
           busId: boleto.programacion?.bus?.id
         });
@@ -293,5 +293,34 @@ export class BoletoService {
       ],
       order: { hora_descenso: 'DESC' },
     });
+  }
+
+  async getIngresosPorMetodoPago(meses: number = 6) {
+    const fechaInicio = new Date();
+    fechaInicio.setMonth(fechaInicio.getMonth() - meses);
+    fechaInicio.setDate(1);
+    fechaInicio.setHours(0, 0, 0, 0);
+
+    const boletos = await this.boletoRepository.find({
+      where: {
+        estado: EstadoBoleto.COMPLETADO,
+        hora_abordaje: Between(fechaInicio, new Date()),
+      },
+      relations: ['metodoPagoCiudadano', 'metodoPagoCiudadano.metodoPago'],
+    });
+
+    // Agrupar por mes y tipo de método de pago
+    const agrupado: Record<string, Record<string, number>> = {};
+
+    for (const boleto of boletos) {
+      const fecha = new Date(boleto.hora_abordaje);
+      const mes = fecha.toLocaleString('es-CO', { month: 'short', year: '2-digit' });
+      const tipo = boleto.metodoPagoCiudadano?.metodoPago?.tipo || 'Otro';
+
+      if (!agrupado[mes]) agrupado[mes] = { Tarjeta: 0, Efectivo: 0, ePayco: 0 };
+      agrupado[mes][tipo] = (agrupado[mes][tipo] || 0) + Number(boleto.monto_pagado);
+    }
+
+    return Object.entries(agrupado).map(([mes, valores]) => ({ mes, ...valores }));
   }
 }

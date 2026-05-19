@@ -32,6 +32,7 @@ import { AuthModule } from './auth/auth.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { RutaNodoModule } from './ruta_nodo/ruta_nodo.module';
 import { RutaParaderoModule } from './ruta_paradero/ruta_paradero.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 
 @Module({
@@ -81,6 +82,7 @@ import { RutaParaderoModule } from './ruta_paradero/ruta_paradero.module';
     RutaNodoModule,
     AuthModule,
     WebsocketModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -81,7 +81,6 @@ export class TurnoService {
   }
 
   async findTurnoActivoPorAuthId(authId: string) {
-    // Buscar la persona por authId para obtener el conductor
     const conductor = await this.conductorRepository.findOne({
       where: { persona: { authId } },
       relations: ['persona'],
@@ -97,17 +96,28 @@ export class TurnoService {
     const finDia = new Date(ahora);
     finDia.setHours(23, 59, 59, 999);
 
-    const turno = await this.turnoRepository.findOne({
+    // Buscar turno EN_CURSO primero, luego PROGRAMADO
+    let turno = await this.turnoRepository.findOne({
       where: {
         conductor: { id: conductor.id },
-        estado: 'PROGRAMADO',
-        fecha_inicio_programada: Between(inicioDia, finDia),
+        estado: 'EN_CURSO',
       },
       relations: ['conductor', 'conductor.persona', 'bus', 'bus.gps'],
     });
 
     if (!turno) {
-      throw new NotFoundException('No hay turnos programados para hoy');
+      turno = await this.turnoRepository.findOne({
+        where: {
+          conductor: { id: conductor.id },
+          estado: 'PROGRAMADO',
+          fecha_inicio_programada: Between(inicioDia, finDia),
+        },
+        relations: ['conductor', 'conductor.persona', 'bus', 'bus.gps'],
+      });
+    }
+
+    if (!turno) {
+      throw new NotFoundException('No hay turnos activos o programados para hoy');
     }
 
     return turno;

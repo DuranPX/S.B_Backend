@@ -6,11 +6,13 @@ import { Turno } from './entities/turno.entity';
 import { Conductor } from '../conductor/entities/conductor.entity';
 import { Bus } from '../bus/entities/bus.entity';
 import { Persona } from 'src/persona/entities/persona.entity';
+import { TurnoScheduler } from './turno.scheduler';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Turno, Conductor, Bus, Persona])],
   controllers: [TurnoController],
-  providers: [TurnoService],
+  providers: [TurnoService, TurnoScheduler, EventEmitter2],
   exports: [TurnoService],
 })
-export class TurnoModule {}
+export class TurnoModule { }
