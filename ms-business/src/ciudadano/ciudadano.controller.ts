@@ -31,4 +31,9 @@ export class CiudadanoController {
   remove(@Param('id') id: string) {
     return this.ciudadanoService.remove(id);
   }
+
+  @Get('/analiticas/rango-etario')
+  getDistribucionEtaria() {
+    return this.ciudadanoService.getDistribucionEtaria();
+  }
 }

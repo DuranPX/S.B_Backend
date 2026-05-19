@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, Between } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Boleto, EstadoBoleto } from './entities/boleto.entity';
 import { Programacion, EstadoProgramacion } from '../programacion/entities/programacion.entity';
@@ -295,5 +295,34 @@ export class BoletoService {
       ],
       order: { hora_descenso: 'DESC' },
     });
+  }
+
+  async getIngresosPorMetodoPago(meses: number = 6) {
+    const fechaInicio = new Date();
+    fechaInicio.setMonth(fechaInicio.getMonth() - meses);
+    fechaInicio.setDate(1);
+    fechaInicio.setHours(0, 0, 0, 0);
+
+    const boletos = await this.boletoRepository.find({
+      where: {
+        estado: EstadoBoleto.COMPLETADO,
+        hora_abordaje: Between(fechaInicio, new Date()),
+      },
+      relations: ['metodoPagoCiudadano', 'metodoPagoCiudadano.metodoPago'],
+    });
+
+    // Agrupar por mes y tipo de método de pago
+    const agrupado: Record<string, Record<string, number>> = {};
+
+    for (const boleto of boletos) {
+      const fecha = new Date(boleto.hora_abordaje);
+      const mes = fecha.toLocaleString('es-CO', { month: 'short', year: '2-digit' });
+      const tipo = boleto.metodoPagoCiudadano?.metodoPago?.tipo || 'Otro';
+
+      if (!agrupado[mes]) agrupado[mes] = { Tarjeta: 0, Efectivo: 0, ePayco: 0 };
+      agrupado[mes][tipo] = (agrupado[mes][tipo] || 0) + Number(boleto.monto_pagado);
+    }
+
+    return Object.entries(agrupado).map(([mes, valores]) => ({ mes, ...valores }));
   }
 }

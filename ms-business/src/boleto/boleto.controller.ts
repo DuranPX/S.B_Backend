@@ -10,6 +10,7 @@ import {
   UseGuards,
   Request,
   ParseUUIDPipe,
+  Query,
 } from '@nestjs/common';
 import { BoletoService } from './boleto.service';
 import { CreateBoletoDto } from './dto/create-boleto.dto';
@@ -79,5 +80,10 @@ export class BoletoController {
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.boletoService.remove(id);
+  }
+
+  @Get('analytics/ingresos')
+  getIngresosPorMetodoPago(@Query('meses') meses?: string) {
+    return this.boletoService.getIngresosPorMetodoPago(Number(meses) || 6);
   }
 }

@@ -1,4 +1,4 @@
-// src/incidente-bus/incidente-bus.controller.ts
+// Reemplaza el archivo completo:
 import {
   Controller,
   Get,
@@ -9,18 +9,21 @@ import {
   ParseUUIDPipe,
   UseInterceptors,
   UploadedFiles,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { IncidenteBusService } from './incidente-bus.service';
 import { CreateIncidenteBusDto } from './dto/create-incidente-bus.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('incidente-bus')
 export class IncidenteBusController {
   constructor(private readonly incidenteBusService: IncidenteBusService) {}
 
-  // Endpoint estrella — reporte de incidente con carga de fotos
+  @UseGuards(JwtAuthGuard)
   @Post('reportar')
   @UseInterceptors(
     FilesInterceptor('fotos', 10, {
@@ -43,10 +46,12 @@ export class IncidenteBusController {
     }),
   )
   reportar(
+    @Request() req,
     @Body() createIncidenteBusDto: CreateIncidenteBusDto,
     @UploadedFiles() fotos: Express.Multer.File[],
   ) {
-    return this.incidenteBusService.reportarConFotos(createIncidenteBusDto, fotos);
+    const authId = req.user.authId || req.user.sub;
+    return this.incidenteBusService.reportarConFotos(createIncidenteBusDto, fotos, authId);
   }
 
   @Get()

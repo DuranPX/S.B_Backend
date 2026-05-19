@@ -8,7 +8,41 @@ import { MetodoPago, MetodoPagoTipo } from '../metodo-pago/entities/metodo-pago.
 
 @Injectable()
 export class AuthService {
-  constructor(private dataSource: DataSource) {}
+  constructor(private dataSource: DataSource) { }
+
+  /**
+   * Descompone el campo `name` del JWT en firstName y lastName.
+   * Si el JWT trae "Juan García" en name, el primer token es nombre y el resto apellido.
+   * Nunca guarda "Usuario"/"Pendiente" como placeholders.
+   */
+  private splitName(jwtPayload: any): { firstName: string; lastName: string } {
+    if (jwtPayload.firstName || jwtPayload.first_name) {
+      return {
+        firstName: (jwtPayload.firstName || jwtPayload.first_name || '').trim() || 'Sin nombre',
+        lastName: (jwtPayload.lastName || jwtPayload.last_name || '').trim() || 'Sin apellido',
+      };
+    }
+
+    const lastName = (jwtPayload.lastName || jwtPayload.last_name || '').trim();
+    const fullName = (jwtPayload.name || '').trim();
+
+    if (fullName && lastName) {
+      return { firstName: fullName, lastName };
+    }
+
+    if (fullName) {
+      const parts = fullName.split(' ').filter(Boolean);
+      if (parts.length === 1) return { firstName: parts[0], lastName: 'Sin apellido' };
+      const midpoint = Math.ceil(parts.length / 2);
+      return {
+        firstName: parts.slice(0, midpoint).join(' '),
+        lastName: parts.slice(midpoint).join(' '),
+      };
+    }
+
+    const emailPart = (jwtPayload.email || '').split('@')[0] || 'usuario';
+    return { firstName: emailPart, lastName: 'Pendiente' };
+  }
 
   async syncUser(jwtPayload: any): Promise<any> {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -16,37 +50,39 @@ export class AuthService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. Buscar si la persona ya existe mediante auth_id
       let persona = await queryRunner.manager.findOne(Persona, {
         where: { authId: jwtPayload.authId },
         lock: { mode: 'pessimistic_write' },
         relations: ['ciudadano', 'conductor']
       });
 
-      // 2. Si no existe, crear la entidad Persona
       if (!persona) {
+        const { firstName, lastName } = this.splitName(jwtPayload);
+
         persona = queryRunner.manager.create(Persona, {
           authId: jwtPayload.authId,
           email: jwtPayload.email,
-          firstName: jwtPayload.name || 'Usuario',
-          lastName: 'Pendiente',
+          firstName,
+          lastName,
           tipoDocumento: TipoDocumento.CC,
-          // Placeholder temporal hasta que el usuario complete su perfil.
-          // Usamos los últimos 10 chars del authId para evitar colisiones.
           numeroDocumento: `PEND-${jwtPayload.authId.slice(-8)}`,
         });
-        
+
         persona = await queryRunner.manager.save(persona);
 
-        // 3. Crear el rol de ciudadano por defecto si el JWT tiene el rol
-        const isCitizen = !jwtPayload.roles || jwtPayload.roles.length === 0 || jwtPayload.roles.some((r: any) => typeof r === 'string' && (r.toUpperCase().includes('CITIZEN') || r.toUpperCase().includes('CIUDADANO') || r.toUpperCase().includes('USER')));
-        
+        const isCitizen = !jwtPayload.roles || jwtPayload.roles.length === 0 || jwtPayload.roles.some(
+          (r: any) => typeof r === 'string' && (
+            r.toUpperCase().includes('CITIZEN') ||
+            r.toUpperCase().includes('CIUDADANO') ||
+            r.toUpperCase().includes('USER')
+          )
+        );
+
         if (isCitizen) {
           const ciudadano = queryRunner.manager.create(Ciudadano, { persona });
           const savedCiudadano = await queryRunner.manager.save(ciudadano);
           persona.ciudadano = savedCiudadano;
 
-          // --- CREAR BILLETERA VIRTUAL POR DEFECTO PARA EL CIUDADANO ---
           let metodoPago = await queryRunner.manager.findOne(MetodoPago, {
             where: { tipo: MetodoPagoTipo.TARJETA }
           });
@@ -68,15 +104,31 @@ export class AuthService {
         }
 
       } else {
-        // Actualizar datos si es necesario
+        // Actualizar email si cambió
         if (jwtPayload.email && persona.email !== jwtPayload.email) {
           persona.email = jwtPayload.email;
           persona = await queryRunner.manager.save(persona);
         }
 
-        // Si la persona ya existía pero por algún motivo no se le había creado su Ciudadano o Billetera
+        // Actualizar nombre si aún tiene los placeholders viejos
+        if (
+          persona.firstName === 'Usuario' || persona.firstName === 'Sin nombre' ||
+          persona.lastName === 'Pendiente' || persona.lastName === 'Sin apellido'
+        ) {
+          const { firstName, lastName } = this.splitName(jwtPayload);
+          if (firstName !== 'Sin nombre') persona.firstName = firstName;
+          if (lastName !== 'Sin apellido' && lastName !== 'Pendiente') persona.lastName = lastName;
+          persona = await queryRunner.manager.save(persona);
+        }
+
         if (!persona.ciudadano) {
-          const isCitizen = !jwtPayload.roles || jwtPayload.roles.length === 0 || jwtPayload.roles.some((r: any) => typeof r === 'string' && (r.toUpperCase().includes('CITIZEN') || r.toUpperCase().includes('CIUDADANO') || r.toUpperCase().includes('USER')));
+          const isCitizen = !jwtPayload.roles || jwtPayload.roles.length === 0 || jwtPayload.roles.some(
+            (r: any) => typeof r === 'string' && (
+              r.toUpperCase().includes('CITIZEN') ||
+              r.toUpperCase().includes('CIUDADANO') ||
+              r.toUpperCase().includes('USER')
+            )
+          );
           if (isCitizen) {
             const ciudadano = queryRunner.manager.create(Ciudadano, { persona });
             const savedCiudadano = await queryRunner.manager.save(ciudadano);
@@ -103,14 +155,20 @@ export class AuthService {
           }
         }
       }
-      
+
       await queryRunner.commitTransaction();
 
-      // Devolver un perfil simplificado
       return {
         id: persona.id,
         auth_id: persona.authId,
         email: persona.email,
+        firstName: persona.firstName,
+        lastName: persona.lastName,
+        birthDate: persona.birthDate
+          ? new Date(persona.birthDate).toISOString().slice(0, 10)
+          : null,
+        phone: persona.phone || null,
+        personaId: persona.id,
         roles: jwtPayload.roles,
         ciudadanoId: persona.ciudadano?.id || null,
         conductorId: persona.conductor?.id || null,

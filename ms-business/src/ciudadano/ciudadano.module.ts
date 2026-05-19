@@ -6,10 +6,11 @@ import { Ciudadano } from './entities/ciudadano.entity';
 import { PersonaModule } from '../persona/persona.module';
 import { MetodoPagoCiudadano } from '../metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity';
 import { MetodoPago } from '../metodo-pago/entities/metodo-pago.entity';
+import { Persona } from '../persona/entities/persona.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Ciudadano, MetodoPagoCiudadano, MetodoPago]),
+    TypeOrmModule.forFeature([Ciudadano, MetodoPagoCiudadano, MetodoPago, Persona]),
     PersonaModule,
   ],
   controllers: [CiudadanoController],
