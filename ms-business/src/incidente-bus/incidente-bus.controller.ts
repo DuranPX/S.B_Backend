@@ -64,6 +64,11 @@ export class IncidenteBusController {
     return this.incidenteBusService.findByIncidente(incidente_id);
   }
 
+  @Get('bus/:bus_id')
+  findByBus(@Param('bus_id', ParseUUIDPipe) bus_id: string) {
+    return this.incidenteBusService.findByBus(bus_id);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.incidenteBusService.findOne(id);
@@ -74,8 +79,4 @@ export class IncidenteBusController {
     return this.incidenteBusService.remove(id);
   }
 
-  @Get('bus/:bus_id')
-  findByBus(@Param('bus_id', ParseUUIDPipe) bus_id: string) {
-    return this.incidenteBusService.findByBus(bus_id);
-  }
 }
