@@ -9,19 +9,54 @@ import { Repository } from 'typeorm';
 import { Programacion, EstadoProgramacion } from './entities/programacion.entity';
 import { CreateProgramacionDto } from './dto/create-programacion.dto';
 import { UpdateProgramacionDto } from './dto/update-programacion.dto';
+import { Turno } from '../turno/entities/turno.entity';
 
 @Injectable()
 export class ProgramacionService {
   constructor(
     @InjectRepository(Programacion)
     private readonly programacionRepository: Repository<Programacion>,
+    @InjectRepository(Turno)
+    private readonly turnoRepository: Repository<Turno>,
   ) {}
 
   async create(createProgramacionDto: CreateProgramacionDto): Promise<Programacion> {
-    const { ruta_id, bus_id, ...rest } = createProgramacionDto;
+    const { ruta_id, bus_id, fecha, hora_salida, ...rest } = createProgramacionDto;
+
+    // Validación 1 — Bus sin programación activa en el mismo horario
+    const conflicto = await this.programacionRepository.findOne({
+      where: {
+        bus: { id: bus_id } as any,
+        fecha: new Date(fecha) as any,
+        hora_salida,
+        estado: EstadoProgramacion.PROGRAMADO,
+      },
+    });
+
+    if (conflicto) {
+      throw new BadRequestException(
+        `El bus ya tiene una programación activa para esa fecha y hora`,
+      );
+    }
+
+    // Validación 2 — Bus con conductor asignado (turno activo)
+    const turno = await this.turnoRepository.findOne({
+      where: {
+        bus: { id: bus_id } as any,
+        estado: 'EN_CURSO' as any,
+      },
+    });
+
+    if (!turno) {
+      throw new BadRequestException(
+        `El bus no tiene un conductor asignado en turno activo`,
+      );
+    }
 
     const programacion = this.programacionRepository.create({
       ...rest,
+      fecha,
+      hora_salida,
       ruta: { id: ruta_id } as any,
       bus: { id: bus_id } as any,
     });

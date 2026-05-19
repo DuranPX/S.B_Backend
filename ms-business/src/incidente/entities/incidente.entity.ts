@@ -27,6 +27,12 @@ export enum EstadoIncidente {
   RESUELTO = 'Resuelto',
 }
 
+export interface Comentario {
+  texto: string;
+  fecha: string;
+  autor?: string;
+}
+
 @Entity('incidente')
 export class Incidente {
   @PrimaryGeneratedColumn('uuid')
@@ -55,6 +61,9 @@ export class Incidente {
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   fecha_reporte: Date;
+
+  @Column({ type: 'json', nullable: true, default: [] })
+  comentarios: Comentario[];
 
   @OneToMany(() => IncidenteBus, (incidenteBus) => incidenteBus.incidente)
   incidenteBuses: IncidenteBus[];

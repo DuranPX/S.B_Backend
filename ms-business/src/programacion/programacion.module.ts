@@ -4,9 +4,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Programacion } from './entities/programacion.entity';
 import { ProgramacionService } from './programacion.service';
 import { ProgramacionController } from './programacion.controller';
+import { Turno } from 'src/turno/entities/turno.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Programacion])],
+  imports: [TypeOrmModule.forFeature([Programacion, Turno])],
   controllers: [ProgramacionController],
   providers: [ProgramacionService],
   exports: [TypeOrmModule, ProgramacionService],

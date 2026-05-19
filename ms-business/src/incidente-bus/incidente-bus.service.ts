@@ -1,8 +1,5 @@
 // src/incidente-bus/incidente-bus.service.ts
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { IncidenteBus } from './entities/incidente-bus.entity';
@@ -15,12 +12,11 @@ export class IncidenteBusService {
     @InjectRepository(IncidenteBus)
     private readonly incidenteBusRepository: Repository<IncidenteBus>,
     private readonly incidenteService: IncidenteService,
-  ) {}
+  ) { }
 
   async create(createIncidenteBusDto: CreateIncidenteBusDto): Promise<IncidenteBus> {
     const { incidente_id, bus_id } = createIncidenteBusDto;
 
-    // Verificamos que el incidente existe
     await this.incidenteService.findOne(incidente_id);
 
     const incidenteBus = this.incidenteBusRepository.create({
@@ -57,13 +53,27 @@ export class IncidenteBusService {
     });
   }
 
+  // ← fix 4: relaciones completas para que el frontend pueda
+  // construir correctamente el Incidente con sus incidenteBuses
+  async findByBus(bus_id: string): Promise<IncidenteBus[]> {
+    return await this.incidenteBusRepository.find({
+      where: { bus: { id: bus_id } as any },
+      relations: [
+        'incidente',
+        'incidente.incidenteBuses',
+        'incidente.incidenteBuses.bus',
+        'incidente.incidenteBuses.fotos',
+        'fotos',
+      ],
+    });
+  }
+
   async reportarConFotos(
     createIncidenteBusDto: CreateIncidenteBusDto,
     fotos: Express.Multer.File[],
   ): Promise<IncidenteBus> {
     const incidenteBus = await this.create(createIncidenteBusDto);
 
-    // Guardamos las urls de las fotos asociadas al incidenteBus
     if (fotos && fotos.length > 0) {
       const fotoEntities = fotos.map((foto) =>
         this.incidenteBusRepository.manager.create('Foto', {
@@ -74,7 +84,15 @@ export class IncidenteBusService {
       await this.incidenteBusRepository.manager.save('Foto', fotoEntities);
     }
 
-    return await this.findOne(incidenteBus.id);
+    const resultado = await this.findOne(incidenteBus.id);
+
+    // Notificar al supervisor si gravedad alta o crítica
+    await this.incidenteService.notificarSupervisor(
+      resultado.incidente,
+      resultado.bus.placa ?? 'Sin placa',
+    );
+
+    return resultado;
   }
 
   async remove(id: string): Promise<void> {
