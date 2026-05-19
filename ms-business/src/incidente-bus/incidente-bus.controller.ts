@@ -73,4 +73,9 @@ export class IncidenteBusController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.incidenteBusService.remove(id);
   }
+
+  @Get('bus/:bus_id')
+  findByBus(@Param('bus_id', ParseUUIDPipe) bus_id: string) {
+    return this.incidenteBusService.findByBus(bus_id);
+  }
 }

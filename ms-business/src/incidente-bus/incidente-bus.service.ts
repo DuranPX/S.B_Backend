@@ -1,9 +1,5 @@
-// Reemplaza el archivo completo:
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+// src/incidente-bus/incidente-bus.service.ts
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { IncidenteBus } from './entities/incidente-bus.entity';
@@ -22,7 +18,7 @@ export class IncidenteBusService {
     @InjectRepository(Conductor)
     private readonly conductorRepository: Repository<Conductor>,
     private readonly incidenteService: IncidenteService,
-  ) {}
+  ) { }
 
   async create(createIncidenteBusDto: CreateIncidenteBusDto): Promise<IncidenteBus> {
     const { incidente_id, bus_id } = createIncidenteBusDto;
@@ -55,6 +51,21 @@ export class IncidenteBusService {
     return await this.incidenteBusRepository.find({
       where: { incidente: { id: incidente_id } as any },
       relations: ['bus', 'fotos'],
+    });
+  }
+
+  // ← fix 4: relaciones completas para que el frontend pueda
+  // construir correctamente el Incidente con sus incidenteBuses
+  async findByBus(bus_id: string): Promise<IncidenteBus[]> {
+    return await this.incidenteBusRepository.find({
+      where: { bus: { id: bus_id } as any },
+      relations: [
+        'incidente',
+        'incidente.incidenteBuses',
+        'incidente.incidenteBuses.bus',
+        'incidente.incidenteBuses.fotos',
+        'fotos',
+      ],
     });
   }
 
@@ -98,7 +109,15 @@ export class IncidenteBusService {
       await this.incidenteBusRepository.manager.save('Foto', fotoEntities);
     }
 
-    return await this.findOne(incidenteBus.id);
+    const resultado = await this.findOne(incidenteBus.id);
+
+    // Notificar al supervisor si gravedad alta o crítica
+    await this.incidenteService.notificarSupervisor(
+      resultado.incidente,
+      resultado.bus.placa ?? 'Sin placa',
+    );
+
+    return resultado;
   }
 
   async remove(id: string): Promise<void> {
