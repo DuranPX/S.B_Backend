@@ -11,33 +11,67 @@ export class TurnoScheduler {
     @InjectRepository(Turno)
     private readonly turnoRepository: Repository<Turno>,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   // Ejecuta cada minuto
   @Cron(CronExpression.EVERY_MINUTE)
-  async iniciarTurnosProgramados() {
+  async gestionarTurnos() {
     const ahora = new Date();
 
-    // Buscar turnos PROGRAMADOS cuya hora de inicio ya llegó
-    const turnosPendientes = await this.turnoRepository.find({
+    /**
+     * =========================================
+     * FINALIZAR TURNOS EN CURSO
+     * =========================================
+     */
+    const turnosEnCurso = await this.turnoRepository.find({
       where: {
-        estado: 'PROGRAMADO',
-        fecha_inicio_programada: LessThanOrEqual(ahora),
+        estado: 'EN_CURSO',
+        fecha_fin_programada: LessThanOrEqual(ahora),
       },
       relations: ['conductor', 'bus'],
     });
 
-    for (const turno of turnosPendientes) {
-      turno.estado = 'EN_CURSO';
-      turno.fecha_inicio_real = ahora;
+    for (const turno of turnosEnCurso) {
+      turno.estado = 'FINALIZADO';
+      turno.fecha_fin_real = ahora;
+
       await this.turnoRepository.save(turno);
 
-      // Notificar al conductor vía WebSocket
-      this.eventEmitter.emit('shift.started', {
+      // Evento WebSocket
+      this.eventEmitter.emit('shift.finished', {
         turnoId: turno.id,
         conductorId: turno.conductor?.id,
         busId: turno.bus?.id,
-        horaInicio: turno.fecha_inicio_real,
+        horaFin: turno.fecha_fin_real,
+        automatico: true,
+      });
+    }
+
+    /**
+   * =========================================
+   * EXPIRAR TURNOS NO INICIADOS
+   * =========================================
+   * Si un conductor no inició su turno antes de la hora fin programada,
+   * el turno pasa de PROGRAMADO a FINALIZADO automáticamente.
+   */
+    const turnosPerdidos = await this.turnoRepository.find({
+      where: {
+        estado: 'PROGRAMADO',
+        fecha_fin_programada: LessThanOrEqual(ahora),
+      },
+      relations: ['conductor', 'bus'],
+    });
+
+    for (const turno of turnosPerdidos) {
+      turno.estado = 'FINALIZADO';
+      turno.fecha_fin_real = turno.fecha_fin_programada;
+
+      await this.turnoRepository.save(turno);
+
+      this.eventEmitter.emit('shift.expired', {
+        turnoId: turno.id,
+        conductorId: turno.conductor?.id,
+        busId: turno.bus?.id,
         automatico: true,
       });
     }

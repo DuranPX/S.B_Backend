@@ -112,10 +112,14 @@ export class CiudadanoService {
     }
 
     async getDistribucionEtaria() {
+
         const personas = await this.personaRepository.find({
-            where: { ciudadano: Not(IsNull()) },
             relations: ['ciudadano'],
         });
+
+        const personasConCiudadano = personas.filter(
+            persona => persona.ciudadano
+        );
 
         const rangos = {
             'Menores (0-17)': 0,
@@ -128,20 +132,46 @@ export class CiudadanoService {
 
         const hoy = new Date();
 
-        for (const persona of personas) {
+        for (const persona of personasConCiudadano) {
+
             if (!persona.birthDate) {
                 rangos['Sin información']++;
                 continue;
             }
-            const edad = hoy.getFullYear() - new Date(persona.birthDate).getFullYear();
-            if (edad <= 17) rangos['Menores (0-17)']++;
-            else if (edad <= 25) rangos['Jóvenes (18-25)']++;
-            else if (edad <= 40) rangos['Adultos jóvenes (26-40)']++;
-            else if (edad <= 60) rangos['Adultos (41-60)']++;
-            else rangos['Adultos mayores (60+)']++;
+
+            const fechaNacimiento = new Date(persona.birthDate);
+
+            let edad = hoy.getFullYear() - fechaNacimiento.getFullYear();
+
+            const mesActual = hoy.getMonth();
+            const diaActual = hoy.getDate();
+
+            const mesNacimiento = fechaNacimiento.getMonth();
+            const diaNacimiento = fechaNacimiento.getDate();
+
+            // Ajuste real de edad
+            if (
+                mesActual < mesNacimiento ||
+                (mesActual === mesNacimiento && diaActual < diaNacimiento)
+            ) {
+                edad--;
+            }
+
+            if (edad <= 17) {
+                rangos['Menores (0-17)']++;
+            } else if (edad <= 25) {
+                rangos['Jóvenes (18-25)']++;
+            } else if (edad <= 40) {
+                rangos['Adultos jóvenes (26-40)']++;
+            } else if (edad <= 60) {
+                rangos['Adultos (41-60)']++;
+            } else {
+                rangos['Adultos mayores (60+)']++;
+            }
         }
 
         const total = Object.values(rangos).reduce((a, b) => a + b, 0);
+
         const COLORS: Record<string, string> = {
             'Menores (0-17)': '#6ee7f7',
             'Jóvenes (18-25)': '#818cf8',
@@ -154,7 +184,9 @@ export class CiudadanoService {
         return Object.entries(rangos).map(([name, value]) => ({
             name,
             value,
-            porcentaje: total > 0 ? Math.round((value / total) * 100) : 0,
+            porcentaje: total > 0
+                ? Math.round((value / total) * 100)
+                : 0,
             color: COLORS[name],
         }));
     }

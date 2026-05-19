@@ -132,13 +132,36 @@ export class TurnoService {
       );
     }
 
+    // Verificar que el conductor no tenga ya un turno EN_CURSO
+    const turnoEnCurso = await this.turnoRepository.findOne({
+      where: {
+        conductor: { id: turno.conductor?.id },
+        estado: 'EN_CURSO',
+      },
+    });
+
+    if (turnoEnCurso) {
+      throw new BadRequestException(
+        'Ya tienes un turno en curso. Debes finalizarlo antes de iniciar otro.'
+      );
+    }
+
+    const ahora = new Date();
+    const horaPermitida = new Date(turno.fecha_inicio_programada);
+    horaPermitida.setMinutes(horaPermitida.getMinutes() - 10);
+
+    if (ahora < horaPermitida) {
+      throw new BadRequestException(
+        'Este turno aún no puede iniciarse. Puedes iniciarlo 10 minutos antes de la hora programada.'
+      );
+    }
+
     turno.estado = 'EN_CURSO';
     turno.fecha_inicio_real = new Date();
     if (observaciones) turno.observaciones = observaciones;
 
     const saved = await this.turnoRepository.save(turno);
 
-    // Emitir evento SHIFT_STARTED — el gateway lo enviará por WebSocket al conductor
     this.eventEmitter.emit('shift.started', {
       turnoId: saved.id,
       conductorId: saved.conductor?.id,
@@ -153,9 +176,9 @@ export class TurnoService {
     const turno = await this.findOne(id);
 
     if (turno.estado !== 'EN_CURSO') {
-        throw new BadRequestException(
-            `El turno no puede finalizarse porque está en estado: ${turno.estado}`
-        );
+      throw new BadRequestException(
+        `El turno no puede finalizarse porque está en estado: ${turno.estado}`
+      );
     }
 
     turno.estado = 'FINALIZADO';
@@ -166,12 +189,67 @@ export class TurnoService {
 
     // Emitir evento para notificar que el turno finalizó
     this.eventEmitter.emit('shift.ended', {
-        turnoId: saved.id,
-        conductorId: saved.conductor?.id,
-        busId: saved.bus?.id,
-        horaFin: saved.fecha_fin_real,
+      turnoId: saved.id,
+      conductorId: saved.conductor?.id,
+      busId: saved.bus?.id,
+      horaFin: saved.fecha_fin_real,
     });
 
     return saved;
+  }
+
+  async findTurnosConductorHoy(authId: string) {
+    const conductor = await this.conductorRepository.findOne({
+      where: { persona: { authId } },
+      relations: ['persona'],
+    });
+
+    if (!conductor) {
+      throw new NotFoundException('No se encontró un conductor asociado a este usuario');
+    }
+
+    const ahora = new Date();
+    const inicioDia = new Date(ahora);
+    inicioDia.setHours(0, 0, 0, 0);
+    const finDia = new Date(ahora);
+    finDia.setHours(23, 59, 59, 999);
+
+    const turnos = await this.turnoRepository.find({
+      where: [
+        {
+          conductor: { id: conductor.id },
+          estado: 'PROGRAMADO',
+          fecha_inicio_programada: Between(inicioDia, finDia),
+        },
+        {
+          conductor: { id: conductor.id },
+          estado: 'EN_CURSO',
+        },
+      ],
+      relations: ['conductor', 'conductor.persona', 'bus', 'bus.gps'],
+      order: { fecha_inicio_programada: 'ASC' },
+    });
+
+    // Determinar cuál es el próximo a iniciar:
+    // - Si hay uno EN_CURSO, ningún PROGRAMADO puede iniciarse
+    // - Si no hay EN_CURSO, solo el primero PROGRAMADO (por hora) puede iniciarse,
+    //   y solo si ya está dentro de la ventana de 10 minutos antes
+    const hayEnCurso = turnos.some(t => t.estado === 'EN_CURSO');
+
+    return turnos.map(turno => {
+      let puedeIniciar = false;
+
+      if (!hayEnCurso && turno.estado === 'PROGRAMADO') {
+        // Solo el turno más próximo (primero en la lista ordenada por hora)
+        const primerProgramado = turnos.find(t => t.estado === 'PROGRAMADO');
+        if (primerProgramado && turno.id === primerProgramado.id) {
+          const horaPermitida = new Date(turno.fecha_inicio_programada);
+          horaPermitida.setMinutes(horaPermitida.getMinutes() - 10);
+          puedeIniciar = ahora >= horaPermitida;
+        }
+      }
+
+      return { ...turno, puedeIniciar };
+    });
   }
 }

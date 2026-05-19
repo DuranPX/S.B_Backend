@@ -35,6 +35,13 @@ export class TurnoController {
       return this.turnoService.finalizarTurno(id, observaciones);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('conductor/mis-turnos')
+  getMisTurnos(@Request() req) {
+    const authId = req.user.authId || req.user.sub;
+    return this.turnoService.findTurnosConductorHoy(authId);
+  }
+
   @Post()
   create(@Body() createTurnoDto: CreateTurnoDto) {
     return this.turnoService.create(createTurnoDto);

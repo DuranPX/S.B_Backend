@@ -6,10 +6,12 @@ import { IncidenteBusService } from './incidente-bus.service';
 import { IncidenteBusController } from './incidente-bus.controller';
 import { IncidenteModule } from '../incidente/incidente.module';
 import { FotoModule } from '../foto/foto.module';
+import { Turno } from 'src/turno/entities/turno.entity';
+import { Conductor } from 'src/conductor/entities/conductor.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([IncidenteBus]),
+    TypeOrmModule.forFeature([IncidenteBus, Turno, Conductor]),
     IncidenteModule,
     FotoModule,
   ],

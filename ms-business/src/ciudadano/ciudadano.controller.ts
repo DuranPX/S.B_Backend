@@ -32,7 +32,7 @@ export class CiudadanoController {
     return this.ciudadanoService.remove(id);
   }
 
-  @Get('analytics/edad')
+  @Get('/analiticas/rango-etario')
   getDistribucionEtaria() {
     return this.ciudadanoService.getDistribucionEtaria();
   }
