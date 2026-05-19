@@ -21,12 +21,25 @@ export class ParaderoService {
   ) { }
 
   async create(createParaderoDto: CreateParaderoDto): Promise<Paradero> {
-    const { nodo_id, ...rest } = createParaderoDto;
+
+    const { nodo_id, codigo, ...rest } = createParaderoDto;
+
+    // Validar código duplicado
+    const codigoExistente = await this.paraderoRepository.findOne({
+      where: { codigo },
+    });
+
+    if (codigoExistente) {
+      throw new BadRequestException(
+        `Ya existe un paradero con el código ${codigo}`
+      );
+    }
 
     // Verificamos que el nodo existe antes de crear el paradero
     const nodo = await this.nodoService.findOne(nodo_id);
 
     const paradero = this.paraderoRepository.create({
+      codigo,
       ...rest,
       nodo,
     });
@@ -81,9 +94,30 @@ export class ParaderoService {
     return paradero;
   }
 
-  async update(id: string, updateParaderoDto: UpdateParaderoDto): Promise<Paradero> {
+  async update(
+    id: string,
+    updateParaderoDto: UpdateParaderoDto
+  ): Promise<Paradero> {
+
     const paradero = await this.findOne(id);
-    const { nodo_id, ...rest } = updateParaderoDto;
+
+    const { nodo_id, codigo, ...rest } = updateParaderoDto;
+
+    // Validar código duplicado SOLO si cambia
+    if (codigo && codigo !== paradero.codigo) {
+
+      const codigoExistente = await this.paraderoRepository.findOne({
+        where: { codigo },
+      });
+
+      if (codigoExistente) {
+        throw new BadRequestException(
+          `Ya existe un paradero con el código ${codigo}`
+        );
+      }
+
+      paradero.codigo = codigo;
+    }
 
     // Si viene nodo_id nuevo, verificamos que existe
     if (nodo_id) {
@@ -92,6 +126,7 @@ export class ParaderoService {
     }
 
     Object.assign(paradero, rest);
+
     return await this.paraderoRepository.save(paradero);
   }
 
