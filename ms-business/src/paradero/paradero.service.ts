@@ -18,7 +18,7 @@ export class ParaderoService {
     private readonly paraderoRepository: Repository<Paradero>,
     private readonly nodoService: NodoService,
     private dataSource: DataSource
-  ) {}
+  ) { }
 
   async create(createParaderoDto: CreateParaderoDto): Promise<Paradero> {
     const { nodo_id, ...rest } = createParaderoDto;
@@ -36,7 +36,11 @@ export class ParaderoService {
 
   async findAll(): Promise<Paradero[]> {
     return await this.paraderoRepository.find({
-      relations: ['nodo'],
+      relations: [
+        'nodo',
+        'rutaParaderos',
+        'rutaParaderos.ruta',
+      ],
     });
   }
 
@@ -95,4 +99,4 @@ export class ParaderoService {
     const paradero = await this.findOne(id);
     await this.paraderoRepository.remove(paradero);
   }
-}
+}
