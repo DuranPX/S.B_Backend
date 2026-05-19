@@ -26,19 +26,33 @@ export class PersonaService {
     private readonly mensajeRepo: Repository<Mensaje>,
   ) { }
 
-  // ── CREATE ─────────────────────────────────────────────────────────────────
-  // authId llega del controlador (extraído del JWT), nunca del body.
   async create(dto: CreatePersonaDto, authId: string): Promise<Persona> {
-    const existe = await this.personaRepo.findOneBy({ authId });
-    if (existe) {
-      throw new ConflictException(
-        'Ya existe un registro de Persona para este usuario.',
-      );
-    }
+  const existe = await this.personaRepo.findOneBy({ authId });
 
-    const persona = this.personaRepo.create({ ...dto, authId });
-    return this.personaRepo.save(persona);
+  if (existe) {
+    throw new ConflictException(
+      'Ya existe un registro de Persona para este usuario.',
+    );
   }
+
+  const payload: Partial<Persona> = {
+  authId,
+  firstName: dto.firstName,
+  lastName: dto.lastName,
+  email: dto.email,
+  tipoDocumento: dto.tipoDocumento,
+  numeroDocumento: dto.numeroDocumento,
+  phone: dto.phone,
+};
+
+  if (dto.birthDate) {
+    payload.birthDate = new Date(dto.birthDate);
+  }
+
+  const persona = this.personaRepo.create(payload);
+
+  return await this.personaRepo.save(persona);
+}
 
   // ── READ ALL ───────────────────────────────────────────────────────────────
   findAll(): Promise<Persona[]> {
@@ -57,7 +71,11 @@ export class PersonaService {
   // ── UPDATE ─────────────────────────────────────────────────────────────────
   async update(id: string, dto: UpdatePersonaDto): Promise<Persona> {
     const persona = await this.findOne(id); // lanza NotFoundException si no existe
-    Object.assign(persona, dto);
+    const payload = { ...dto } as any;
+    if (dto.birthDate) {
+      payload.birthDate = new Date(dto.birthDate);
+    }
+    Object.assign(persona, payload);
     return this.personaRepo.save(persona);
   }
 
