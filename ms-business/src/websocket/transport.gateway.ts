@@ -40,10 +40,21 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
 
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.auth.token || client.handshake.headers['authorization'];
-      if (!token) throw new Error('Token no proporcionado');
+      console.log(`[WS-Business] Intento de conexión: ${client.id}`);
+      
+      const disableJwt = process.env.DISABLE_JWT === 'true';
+      let payload;
 
-      const payload = this.jwtService.verify(token.replace('Bearer ', ''));
+      if (disableJwt) {
+        console.log('[WS-Business] 🟡 MODO TEST: Revisión de JWT desactivada');
+        payload = { sub: 'test-user', roles: ['Admin', 'Driver'] };
+      } else {
+        const token = client.handshake.auth.token || client.handshake.headers['authorization'];
+        if (!token) throw new Error('Token no proporcionado');
+
+        payload = this.jwtService.verify(token.replace('Bearer ', ''));
+      }
+      
       client.data.user = payload;
       
       const roles = payload.roles || [];
@@ -53,7 +64,10 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
         client.join(`driver:${sub}`);
       }
       client.join(`user:${sub}`);
+      
+      console.log(`[WS-Business] 🟢 Conectado cliente: ${client.id}, UserID: ${sub}`);
     } catch (e) {
+      console.error(`[WS-Business] 🔴 Error de conexión (${client.id}):`, e.message);
       client.disconnect(true);
     }
   }
