@@ -5,6 +5,7 @@ import { Ciudadano } from '../ciudadano/entities/ciudadano.entity';
 import { Conductor } from '../conductor/entities/conductor.entity';
 import { MetodoPagoCiudadano } from '../metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity';
 import { MetodoPago, MetodoPagoTipo } from '../metodo-pago/entities/metodo-pago.entity';
+import { Asesor } from '../asesor/entities/asesor.entity';
 
 @Injectable()
 export class AuthService {
@@ -53,7 +54,7 @@ export class AuthService {
       let persona = await queryRunner.manager.findOne(Persona, {
         where: { authId: jwtPayload.authId },
         lock: { mode: 'pessimistic_write' },
-        relations: ['ciudadano', 'conductor']
+        relations: ['ciudadano', 'conductor', 'asesor']
       });
 
       if (!persona) {
@@ -77,6 +78,7 @@ export class AuthService {
             r.toUpperCase().includes('USER')
           )
         );
+
 
         if (isCitizen) {
           const ciudadano = queryRunner.manager.create(Ciudadano, { persona });
@@ -153,6 +155,30 @@ export class AuthService {
             });
             await queryRunner.manager.save(billetera);
           }
+        } else {
+          const isAsesor = jwtPayload.roles?.some(
+            (r: any) => typeof r === 'string' &&
+              r.toUpperCase().includes('ASESOR')
+          );
+          if (isAsesor) {
+            const asesorExistente = await queryRunner.manager.findOne(Asesor, {
+              where: {
+                persona: {
+                  id: persona.id,
+                },
+              },
+            });
+
+            if (!asesorExistente) {
+              const asesor = queryRunner.manager.create(Asesor, {
+                persona,
+                calendarId: persona.email,
+                disponible: true,
+              });
+
+              await queryRunner.manager.save(asesor);
+            }
+          }
         }
       }
 
@@ -172,6 +198,8 @@ export class AuthService {
         roles: jwtPayload.roles,
         ciudadanoId: persona.ciudadano?.id || null,
         conductorId: persona.conductor?.id || null,
+        asesorId: persona.asesor?.id || null,
+        asesorCalendarId: persona.asesor?.calendarId || null,
         status: 'SYNCED'
       };
     } catch (err) {

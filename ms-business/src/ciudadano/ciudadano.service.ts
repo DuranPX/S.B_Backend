@@ -264,4 +264,33 @@ export class CiudadanoService {
             valorMesAnterior: 0,
         }));
     }
+    // ── Agregar estos métodos al CiudadanoService existente ──
+
+// Endpoint que n8n llama en el cron de clima
+async findConAlertasActivas(): Promise<Ciudadano[]> {
+  return this.ciudadanoRepository.find({
+    where: { alertaClimaActiva: true },
+    relations: ['persona'],
+  });
+}
+
+// El ciudadano activa/desactiva desde su perfil
+async updateAlertaClima(
+  id: string,
+  activa: boolean,
+  horarioViaje?: string,
+): Promise<Ciudadano> {
+  const ciudadano = await this.ciudadanoRepository.findOne({
+    where: { id },
+  });
+
+  if (!ciudadano) {
+    throw new NotFoundException(`Ciudadano con id ${id} no encontrado`);
+  }
+
+  ciudadano.alertaClimaActiva = activa;
+  if (horarioViaje !== undefined) ciudadano.horarioViaje = horarioViaje;
+
+  return this.ciudadanoRepository.save(ciudadano);
+}
 }

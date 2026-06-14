@@ -11,11 +11,11 @@ def create_app():
     app = Flask(__name__)
     CORS(app, resources={r"/*": {"origins": "*"}})
     
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key')
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'buses-api-n8n')
 
     # Register blueprints for webhooks
     from routes.webhooks import webhooks_bp
-    app.register_blueprint(webhooks_bp, url_prefix='/api/v1')
+    app.register_blueprint(webhooks_bp)
 
     socketio.init_app(app, cors_allowed_origins="*")
     return app

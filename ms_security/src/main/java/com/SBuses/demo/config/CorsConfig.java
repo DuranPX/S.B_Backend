@@ -15,7 +15,7 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of("http://localhost:5000", "http://frontend:5000"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5000", "http://frontend:5000", "http://n8n:5678", "http://ms-notifications:5002"));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
