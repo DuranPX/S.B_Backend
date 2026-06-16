@@ -146,8 +146,8 @@ public class NotificationController {
         Map<String, String> departamentoRol = Map.of(
             "operaciones", "Supervisor",
             "mantenimiento", "Supervisor",
-            "sistemas", "Administrador Sistema",
-            "atencion_cliente", "Administrador Empresa"
+            "sistemas", "Admin",
+            "atencion_cliente", "asesor"
         );
 
         String rolDestino = departamentoRol.getOrDefault(departamento, "Supervisor");

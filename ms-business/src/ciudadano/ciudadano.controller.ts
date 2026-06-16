@@ -26,6 +26,12 @@ export class CiudadanoController {
     return this.ciudadanoService.findAll();
   }
 
+  // n8n cron llama: GET /ciudadano/alertas-clima-activas
+  @Get('alertas-clima-activas')
+  findConAlertasActivas() {
+    return this.ciudadanoService.findConAlertasActivas();
+  }
+  
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.ciudadanoService.findOne(id);
@@ -43,11 +49,6 @@ export class CiudadanoController {
 
   // ── Agregar estos endpoints al CiudadanoController existente ──
 
-  // n8n cron llama: GET /ciudadano/alertas-clima-activas
-  @Get('alertas-clima-activas')
-  findConAlertasActivas() {
-    return this.ciudadanoService.findConAlertasActivas();
-  }
 
   // Frontend llama: PATCH /ciudadano/:id/alerta-clima
   @Patch(':id/alerta-clima')

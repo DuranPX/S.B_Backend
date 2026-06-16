@@ -1,7 +1,9 @@
+import { PqrsFoto } from './pqrs-foto.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -81,4 +83,7 @@ export class Pqrs {
 
   @UpdateDateColumn()
   actualizadoEn: Date;
+
+  @OneToMany(() => PqrsFoto, foto => foto.pqrs, { cascade: true, eager: true })
+  fotos: PqrsFoto[];
 }

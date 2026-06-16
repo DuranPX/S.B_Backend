@@ -7,7 +7,13 @@ import {
   Param,
   Patch,
   Post,
+  Res,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
+
+import { FilesInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { PqrsService } from './pqrs.service';
 import { CreatePqrsDto, UpdatePqrsEstadoDto } from './dto/pqrs.dto';
 
@@ -18,8 +24,18 @@ export class PqrsController {
   // n8n llama este endpoint para persistir la PQRS
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreatePqrsDto) {
-    return this.pqrsService.create(dto);
+  @UseInterceptors(
+    FilesInterceptor('fotos', 3, {
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
+  create(
+    @Body() dto: CreatePqrsDto,
+    @UploadedFiles() fotos: Express.Multer.File[],
+  ) {
+    return this.pqrsService.create(dto, fotos);
   }
 
   @Get()
@@ -32,12 +48,6 @@ export class PqrsController {
   findByRadicado(@Param('radicado') radicado: string) {
     return this.pqrsService.findByRadicado(radicado);
   }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.pqrsService.findOne(id);
-  }
-
   // Agente cambia estado → ms-notifications llama n8n → notifica ciudadano
   @Patch('radicado/:radicado/estado')
   @HttpCode(HttpStatus.OK)
@@ -47,4 +57,29 @@ export class PqrsController {
   ) {
     return this.pqrsService.updateEstado(radicado, dto);
   }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.pqrsService.findOne(id);
+  }
+
+  @Get(':pqrsId/fotos/:fotoId')
+  async getFoto(
+    @Param('pqrsId') pqrsId: string,
+    @Param('fotoId') fotoId: string,
+    @Res() res: Response,
+  ) {
+    const foto = await this.pqrsService.getFoto(
+      pqrsId,
+      fotoId,
+    );
+
+    res.setHeader(
+      'Content-Type',
+      foto.mimeType,
+    );
+
+    return res.send(foto.datos);
+  }
+
 }

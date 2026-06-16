@@ -34,7 +34,7 @@ import { RutaNodoModule } from './ruta_nodo/ruta_nodo.module';
 import { RutaParaderoModule } from './ruta_paradero/ruta_paradero.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AsesorModule } from './asesor/asesor.module';
-
+import { PqrsModule } from './pqrs/pqrs.module';
 
 @Module({
   imports: [
@@ -85,6 +85,7 @@ import { AsesorModule } from './asesor/asesor.module';
     WebsocketModule,
     ScheduleModule.forRoot(),
     AsesorModule,
+    PqrsModule
   ],
   controllers: [AppController],
   providers: [AppService],
