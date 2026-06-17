@@ -33,8 +33,33 @@ export class ProgramacionService {
 
     @InjectRepository(Ruta)
     private readonly rutaRepository: Repository<Ruta>,
-  ) {}
+  ) { }
 
+
+  async findActiveByBus(
+    busId: string,
+  ) {
+
+    return this
+      .programacionRepository
+      .findOne({
+
+        where: {
+          bus: {
+            id: busId
+          } as any,
+
+          estado:
+            EstadoProgramacion
+              .EN_CURSO,
+        },
+
+        relations: [
+          'ruta',
+          'bus',
+        ],
+      });
+  }
   // =========================================================
   // HELPERS
   // =========================================================
@@ -208,28 +233,31 @@ export class ProgramacionService {
           },
         });
 
+      const fechaHoraProgramacion = new Date(
+        `${fecha}T${hora_salida}:00`,
+      );
+
       const turnoValido = turnos.some(
         (turno: any) => {
+
           if (
-            !turno.hora_inicio ||
-            !turno.hora_fin
+            !turno.fecha_inicio_programada ||
+            !turno.fecha_fin_programada
           ) {
             return false;
           }
 
-          const inicioTurno =
-            this.convertirHoraAMinutos(
-              turno.hora_inicio,
-            );
+          const inicioTurno = new Date(
+            turno.fecha_inicio_programada,
+          );
 
-          const finTurno =
-            this.convertirHoraAMinutos(
-              turno.hora_fin,
-            );
+          const finTurno = new Date(
+            turno.fecha_fin_programada,
+          );
 
           return (
-            nuevaHoraMin >= inicioTurno &&
-            nuevaHoraMin <= finTurno
+            fechaHoraProgramacion >= inicioTurno &&
+            fechaHoraProgramacion <= finTurno
           );
         },
       );

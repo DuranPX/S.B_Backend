@@ -34,8 +34,12 @@ export class IsNotPastDateConstraint implements ValidatorConstraintInterface {
 
     if (Number.isNaN(fecha.getTime())) return false;
 
-    const ahora = new Date();
-    return fecha >= ahora;
+    const hoy = new Date();
+
+    hoy.setHours(0, 0, 0, 0);
+    fecha.setHours(0, 0, 0, 0);
+
+    return fecha >= hoy;
   }
 
   defaultMessage(args: ValidationArguments): string {

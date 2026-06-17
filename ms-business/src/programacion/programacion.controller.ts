@@ -15,7 +15,7 @@ import { UpdateProgramacionDto } from './dto/update-programacion.dto';
 
 @Controller('programaciones')
 export class ProgramacionController {
-  constructor(private readonly programacionService: ProgramacionService) {}
+  constructor(private readonly programacionService: ProgramacionService) { }
 
   @Post()
   create(@Body() createProgramacionDto: CreateProgramacionDto) {
@@ -25,6 +25,21 @@ export class ProgramacionController {
   @Get()
   findAll() {
     return this.programacionService.findAll();
+  }
+
+  @Get('bus/:busId/activa')
+  findActiveByBus(
+    @Param(
+      'busId',
+      ParseUUIDPipe
+    )
+    busId: string
+  ) {
+    return this
+      .programacionService
+      .findActiveByBus(
+        busId
+      );
   }
 
   @Get(':id')
