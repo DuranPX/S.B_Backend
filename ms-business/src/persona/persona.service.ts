@@ -87,6 +87,17 @@ export class PersonaService {
     return persona;
   }
 
+  async search(query: string): Promise<Persona[]> {
+    return this.personaRepo.find({
+      where: [
+        { firstName: ILike(`%${query}%`) },
+        { lastName: ILike(`%${query}%`) },
+        { email: ILike(`%${query}%`) },
+      ],
+      take: 20,
+    });
+  }
+
   // ── UPDATE ─────────────────────────────────────────────────────────────────
   async update(id: string, dto: UpdatePersonaDto): Promise<Persona> {
     const persona = await this.findOne(id); // lanza NotFoundException si no existe

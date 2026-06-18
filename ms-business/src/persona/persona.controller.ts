@@ -46,6 +46,11 @@ export class PersonaController {
     return this.personaService.findAll(search);
   }
 
+  @Get('search')
+  search(@Query('q') q: string) {
+    return this.personaService.search(q);
+  }
+
   // GET /persona/:id
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {

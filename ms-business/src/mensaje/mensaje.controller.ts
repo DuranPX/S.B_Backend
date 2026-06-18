@@ -47,6 +47,14 @@ export class MensajeController {
     return this.mensajeService.findAll();
   }
 
+  @Get('enviados/:personaId')
+  findSentMessages(
+    @Param('personaId', ParseUUIDPipe)
+    personaId: string,
+  ) {
+    return this.mensajeService.findSentMessages(personaId);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.mensajeService.findOne(id);

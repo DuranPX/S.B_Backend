@@ -8,6 +8,9 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { BusService } from '../bus/bus.service';
+import { OnEvent } from '@nestjs/event-emitter';
+import { EtaNotifierService } from './eta-notifier.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Persona } from '../persona/entities/persona.entity';
@@ -31,6 +34,8 @@ export const WS_EVENTS = {
   ALERTA_MASIVA: 'alerta_masiva',
   ALERTA_URGENTE: 'alerta_urgente',
   BUS_LOCATION_UPDATED: 'bus_location_updated',
+  PRIVATE_MESSAGE_RECEIVED: 'private_message_received',
+  PRIVATE_MESSAGE_READ: 'private_message_read',
 };
 
 @WebSocketGateway({
@@ -39,11 +44,13 @@ export const WS_EVENTS = {
 })
 export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   constructor(
+    
     private readonly jwtService: JwtService,
-
+    private readonly busService: BusService,
+    private readonly etaNotifierService: EtaNotifierService,
     @InjectRepository(Persona)
     private readonly personaRepository: Repository<Persona>,
   ) { }
@@ -61,7 +68,6 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
       } else {
         const token = client.handshake.auth.token || client.handshake.headers['authorization'];
         if (!token) throw new Error('Token no proporcionado');
-
         payload = this.jwtService.verify(token.replace('Bearer ', ''));
       }
 
@@ -112,14 +118,12 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
 
       console.log(`[WS-Business] 🟢 Conectado cliente: ${client.id}, UserID: ${userId}`);
     } catch (e) {
-      console.error(`[WS-Business] 🔴 Error de conexión (${client.id}):`, e.message);
+      console.error(`[WS-Business] 🔴 Error de conexión (${client.id}):`, (e as Error).message);
       client.disconnect(true);
     }
   }
 
-  handleDisconnect(client: Socket) {
-    // Limpiar suscripciones si es necesario
-  }
+  handleDisconnect(client: Socket) {}
 
   @SubscribeMessage('join_route_tracking')
   handleJoinRouteTracking(client: Socket, payload: { routeId: string }) {
@@ -136,21 +140,50 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
   }
 
   @SubscribeMessage('driver_location_update')
-  handleDriverLocationUpdate(client: Socket, payload: { lat: number, lng: number, busId: string, routeId: string }) {
+  async handleDriverLocationUpdate(
+    client: Socket,
+    payload: { lat: number; lng: number; busId: string; routeId: string },
+  ) {
     const roles = client.data.user?.roles || [];
     if (!roles.includes('Driver') && !roles.includes('Admin')) {
-      throw new WsException('Unauthorized');
+       throw new WsException('Unauthorized');
     }
+
+    // Buscar la placa real del bus en la BD
+    let placa: string = payload.busId;
+    try {
+      const bus = await this.busService.findOne(payload.busId);
+      placa = bus.placa ?? payload.busId;
+    }catch {
+      console.warn(`[WS] No se encontró placa para busId: ${payload.busId}`);
+    }
+
+    const timestamp = new Date().toISOString();
 
     if (payload.busId) {
       this.server.to(`bus:${payload.busId}`).emit(WS_EVENTS.BUS_LOCATION_UPDATED, {
-        busId: payload.busId, lat: payload.lat, lng: payload.lng, timestamp: new Date().toISOString()
+        busId: payload.busId, placa, lat: payload.lat, lng: payload.lng, timestamp,
       });
     }
 
     if (payload.routeId) {
       this.server.to(`route:${payload.routeId}`).emit(WS_EVENTS.ROUTE_BUS_LOCATION_UPDATED, {
-        busId: payload.busId, lat: payload.lat, lng: payload.lng, timestamp: new Date().toISOString()
+        busId: payload.busId, placa, lat: payload.lat, lng: payload.lng, timestamp,
+        routeId: payload.routeId,
+      });
+
+      // Calcula heurísticamente el ETA del bus hacia los paraderos de la
+      // ruta y avisa a ms-notifications para que dispare las alertas de
+      // "bus a X minutos" activas. No se espera (await) intencionalmente:
+      // no debe retrasar ni romper la actualización de ubicación si
+      // ms-notifications está lento o caído (el propio servicio atrapa
+      // sus errores internamente).
+      void this.etaNotifierService.notificarEtaParaderos({
+        routeId: payload.routeId,
+        busId: payload.busId,
+        placa,
+        lat: payload.lat,
+        lng: payload.lng,
       });
     }
   }
