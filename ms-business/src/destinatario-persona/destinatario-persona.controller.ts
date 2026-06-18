@@ -27,6 +27,13 @@ export class DestinatarioPersonaController {
     return this.destinatarioPersonaService.update(id, updateDestinatarioPersonaDto);
   }
 
+  @Patch(':id/leido')
+  marcarComoLeido(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.destinatarioPersonaService.marcarComoLeido(id);
+  }
+
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.destinatarioPersonaService.remove(id);

@@ -6,22 +6,30 @@ import { UpdateDestinatarioPersonaDto } from './dto/update-destinatario-persona.
 import { DestinatarioPersona } from './entities/destinatario-persona.entity';
 import { Mensaje } from '../mensaje/entities/mensaje.entity';
 import { Persona } from '../persona/entities/persona.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class DestinatarioPersonaService {
   constructor(
-    @InjectRepository(DestinatarioPersona)
-    private readonly destinatarioPersonaRepository: Repository<DestinatarioPersona>,
-    @InjectRepository(Mensaje)
-    private readonly mensajeRepository: Repository<Mensaje>,
-    @InjectRepository(Persona)
-    private readonly personaRepository: Repository<Persona>,
-  ) {}
+  @InjectRepository(DestinatarioPersona)
+  private readonly destinatarioPersonaRepository: Repository<DestinatarioPersona>,
+
+  @InjectRepository(Mensaje)
+  private readonly mensajeRepository: Repository<Mensaje>,
+
+  @InjectRepository(Persona)
+  private readonly personaRepository: Repository<Persona>,
+
+  private readonly eventEmitter: EventEmitter2,
+) {}
 
   async create(createDestinatarioPersonaDto: CreateDestinatarioPersonaDto) {
     const { mensajeId, personaId, ...rest } = createDestinatarioPersonaDto;
 
-    const mensaje = await this.mensajeRepository.findOne({ where: { id: mensajeId } });
+    const mensaje = await this.mensajeRepository.findOne({
+      where: { id: mensajeId },
+      relations: ['emisor'],
+    });
     if (!mensaje) throw new NotFoundException(`Mensaje with ID ${mensajeId} not found`);
 
     const persona = await this.personaRepository.findOne({ where: { id: personaId } });
@@ -37,7 +45,37 @@ export class DestinatarioPersonaService {
       mensaje,
       persona,
     });
-    return await this.destinatarioPersonaRepository.save(destinatarioPersona);
+
+    const saved = await this.destinatarioPersonaRepository.save(destinatarioPersona);
+
+    this.eventEmitter.emit('message.received', {
+      authId: persona.authId,
+      mensajeId: mensaje.id,
+      contenido: mensaje.contenido,
+      fechaEnvio: mensaje.fechaEnvio,
+      emisorId: mensaje.emisor?.id,
+    });
+
+    return saved;
+  }
+
+  async marcarComoLeido(id: string) {
+    const destinatarioPersona = await this.findOne(id);
+
+    destinatarioPersona.leido = true;
+    destinatarioPersona.fechaLectura = new Date();
+
+    const saved = await this.destinatarioPersonaRepository.save(destinatarioPersona);
+
+    this.eventEmitter.emit('message.read', {
+      mensajeId: destinatarioPersona.mensaje.id,
+      fechaLectura: destinatarioPersona.fechaLectura,
+
+      // TEMPORAL
+      authId: destinatarioPersona.persona.authId,
+    });
+
+    return saved;
   }
 
   async findAll() {

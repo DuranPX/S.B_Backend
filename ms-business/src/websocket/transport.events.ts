@@ -81,4 +81,36 @@ export class TransportEventHandlers {
               });
       }
   }
+
+    @OnEvent('message.received')
+  handlePrivateMessage(event: {
+    authId: string;
+    mensajeId: string;
+    contenido: string;
+    fechaEnvio: Date;
+    emisorId: string;
+  }) {
+    this.transportGateway.server
+      .to(`user:${event.authId}`)
+      .emit(
+        WS_EVENTS.PRIVATE_MESSAGE_RECEIVED,
+        event,
+      );
+    console.log('🔥 EVENTO MENSAJE RECIBIDO', event);
+  }
+
+  @OnEvent('message.read')
+  handleMessageRead(event: {
+    authId: string;
+    mensajeId: string;
+    fechaLectura: Date;
+  }) {
+    this.transportGateway.server
+      .to(`user:${event.authId}`)
+      .emit(
+        WS_EVENTS.PRIVATE_MESSAGE_READ,
+        event,
+      );
+    console.log('🔥 EVENTO MENSAJE LEIDO', event);
+  }
 }
