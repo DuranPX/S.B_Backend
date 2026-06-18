@@ -45,6 +45,35 @@ export class MensajeService {
     return mensaje;
   }
 
+    async findSentMessages(personaId: string) {
+
+    const persona = await this.personaRepository.findOne({
+      where: { id: personaId }
+    });
+
+    if (!persona) {
+      throw new NotFoundException(
+        `Persona with ID ${personaId} not found`
+      );
+    }
+
+    return await this.mensajeRepository.find({
+      where: {
+        emisor: {
+          id: personaId,
+        },
+      },
+      relations: [
+        'emisor',
+        'destinatariosPersona',
+        'destinatariosPersona.persona',
+      ],
+      order: {
+        fechaEnvio: 'DESC',
+      },
+    });
+  }
+
   async update(id: string, updateMensajeDto: UpdateMensajeDto) {
     const mensaje = await this.findOne(id);
     const { emisorId, ...rest } = updateMensajeDto;

@@ -4,10 +4,17 @@ import { TransportEventHandlers } from './transport.events';
 import { AuthModule } from '../auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BusModule } from 'src/bus/bus.module';
+import { HttpModule } from '@nestjs/axios';
+import { RutaParaderoModule } from '../ruta_paradero/ruta_paradero.module';
+import { EtaNotifierService } from './eta-notifier.service';
 
 @Module({
   imports: [
     AuthModule,
+    BusModule,
+    HttpModule,
+    RutaParaderoModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -17,7 +24,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       }),
     }),
   ],
-  providers: [TransportGateway, TransportEventHandlers],
+  providers: [TransportGateway, TransportEventHandlers, EtaNotifierService],
   exports: [TransportGateway],
 })
 export class WebsocketModule {}

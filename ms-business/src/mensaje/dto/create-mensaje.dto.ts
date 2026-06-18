@@ -1,9 +1,18 @@
-import { IsString, IsNotEmpty, IsDateString, IsOptional, IsEnum, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsDateString,
+  IsOptional,
+  IsEnum,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 import { TipoMensaje } from '../entities/mensaje.entity';
 
 export class CreateMensajeDto {
-  @IsString()
+ @IsString()
   @IsNotEmpty()
+  @MaxLength(500)
   contenido: string;
 
   @IsDateString()

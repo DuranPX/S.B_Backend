@@ -15,6 +15,7 @@ import type { Request } from 'express';
 import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
 import { PersonaService } from './persona.service';
+import { Query } from '@nestjs/common';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NOTA DE SEGURIDAD – Fase 1
@@ -43,6 +44,11 @@ export class PersonaController {
   @Get()
   findAll() {
     return this.personaService.findAll();
+  }
+
+  @Get('search')
+  search(@Query('q') q: string) {
+    return this.personaService.search(q);
   }
 
   // GET /persona/:id

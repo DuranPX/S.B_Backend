@@ -49,12 +49,38 @@ export class AuthService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
+    const personaByEmail = await queryRunner.manager.findOne(Persona, {
+      where: { email: jwtPayload.email }
+    });
+
+    console.log('PERSONA POR EMAIL:', personaByEmail);
+
+    console.log('JWT PAYLOAD:', jwtPayload);
     try {
+      console.log('JWT PAYLOAD:', jwtPayload);
       let persona = await queryRunner.manager.findOne(Persona, {
         where: { authId: jwtPayload.authId },
         lock: { mode: 'pessimistic_write' },
         relations: ['ciudadano', 'conductor']
       });
+
+      if (!persona && personaByEmail) {
+        // Ya existe una Persona con este email, pero su authId quedó
+        // desincronizado (típicamente porque el usuario se recreó en
+        // ms_security/Mongo y obtuvo un _id nuevo). En vez de intentar
+        // crear una fila duplicada con el mismo email único, actualizamos
+        // el authId para volver a alinear ambos sistemas.
+        persona = await queryRunner.manager.findOne(Persona, {
+          where: { id: personaByEmail.id },
+          lock: { mode: 'pessimistic_write' },
+          relations: ['ciudadano', 'conductor'],
+        });
+
+        if (persona) {
+          persona.authId = jwtPayload.authId;
+          persona = await queryRunner.manager.save(persona);
+        }
+      }
 
       if (!persona) {
         const { firstName, lastName } = this.splitName(jwtPayload);
@@ -103,7 +129,7 @@ export class AuthService {
           await queryRunner.manager.save(billetera);
         }
 
-      } else {
+      } else if (persona) {
         // Actualizar email si cambió
         if (jwtPayload.email && persona.email !== jwtPayload.email) {
           persona.email = jwtPayload.email;

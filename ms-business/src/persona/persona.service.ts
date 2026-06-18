@@ -12,6 +12,7 @@ import { Persona } from './entities/persona.entity';
 import { Conductor } from '../conductor/entities/conductor.entity';
 import { GrupoPersona } from '../grupo-persona/entities/grupo-persona.entity';
 import { Mensaje } from '../mensaje/entities/mensaje.entity';
+import { ILike } from 'typeorm';
 
 @Injectable()
 export class PersonaService {
@@ -54,6 +55,7 @@ export class PersonaService {
   return await this.personaRepo.save(persona);
 }
 
+
   // ── READ ALL ───────────────────────────────────────────────────────────────
   findAll(): Promise<Persona[]> {
     return this.personaRepo.find();
@@ -66,6 +68,17 @@ export class PersonaService {
       throw new NotFoundException(`Persona con id "${id}" no encontrada.`);
     }
     return persona;
+  }
+
+  async search(query: string): Promise<Persona[]> {
+    return this.personaRepo.find({
+      where: [
+        { firstName: ILike(`%${query}%`) },
+        { lastName: ILike(`%${query}%`) },
+        { email: ILike(`%${query}%`) },
+      ],
+      take: 20,
+    });
   }
 
   // ── UPDATE ─────────────────────────────────────────────────────────────────
