@@ -5,6 +5,7 @@ import { Ciudadano } from '../ciudadano/entities/ciudadano.entity';
 import { Conductor } from '../conductor/entities/conductor.entity';
 import { MetodoPagoCiudadano } from '../metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity';
 import { MetodoPago, MetodoPagoTipo } from '../metodo-pago/entities/metodo-pago.entity';
+import { Asesor } from '../asesor/entities/asesor.entity';
 
 @Injectable()
 export class AuthService {
@@ -49,38 +50,12 @@ export class AuthService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
-    const personaByEmail = await queryRunner.manager.findOne(Persona, {
-      where: { email: jwtPayload.email }
-    });
-
-    console.log('PERSONA POR EMAIL:', personaByEmail);
-
-    console.log('JWT PAYLOAD:', jwtPayload);
     try {
-      console.log('JWT PAYLOAD:', jwtPayload);
       let persona = await queryRunner.manager.findOne(Persona, {
         where: { authId: jwtPayload.authId },
         lock: { mode: 'pessimistic_write' },
-        relations: ['ciudadano', 'conductor']
+        relations: ['ciudadano', 'conductor', 'asesor']
       });
-
-      if (!persona && personaByEmail) {
-        // Ya existe una Persona con este email, pero su authId quedó
-        // desincronizado (típicamente porque el usuario se recreó en
-        // ms_security/Mongo y obtuvo un _id nuevo). En vez de intentar
-        // crear una fila duplicada con el mismo email único, actualizamos
-        // el authId para volver a alinear ambos sistemas.
-        persona = await queryRunner.manager.findOne(Persona, {
-          where: { id: personaByEmail.id },
-          lock: { mode: 'pessimistic_write' },
-          relations: ['ciudadano', 'conductor'],
-        });
-
-        if (persona) {
-          persona.authId = jwtPayload.authId;
-          persona = await queryRunner.manager.save(persona);
-        }
-      }
 
       if (!persona) {
         const { firstName, lastName } = this.splitName(jwtPayload);
@@ -103,6 +78,7 @@ export class AuthService {
             r.toUpperCase().includes('USER')
           )
         );
+
 
         if (isCitizen) {
           const ciudadano = queryRunner.manager.create(Ciudadano, { persona });
@@ -129,7 +105,7 @@ export class AuthService {
           await queryRunner.manager.save(billetera);
         }
 
-      } else if (persona) {
+      } else {
         // Actualizar email si cambió
         if (jwtPayload.email && persona.email !== jwtPayload.email) {
           persona.email = jwtPayload.email;
@@ -179,6 +155,30 @@ export class AuthService {
             });
             await queryRunner.manager.save(billetera);
           }
+        } else {
+          const isAsesor = jwtPayload.roles?.some(
+            (r: any) => typeof r === 'string' &&
+              r.toUpperCase().includes('ASESOR')
+          );
+          if (isAsesor) {
+            const asesorExistente = await queryRunner.manager.findOne(Asesor, {
+              where: {
+                persona: {
+                  id: persona.id,
+                },
+              },
+            });
+
+            if (!asesorExistente) {
+              const asesor = queryRunner.manager.create(Asesor, {
+                persona,
+                calendarId: persona.email,
+                disponible: true,
+              });
+
+              await queryRunner.manager.save(asesor);
+            }
+          }
         }
       }
 
@@ -198,6 +198,8 @@ export class AuthService {
         roles: jwtPayload.roles,
         ciudadanoId: persona.ciudadano?.id || null,
         conductorId: persona.conductor?.id || null,
+        asesorId: persona.asesor?.id || null,
+        asesorCalendarId: persona.asesor?.calendarId || null,
         status: 'SYNCED'
       };
     } catch (err) {
