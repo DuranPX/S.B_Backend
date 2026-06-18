@@ -21,6 +21,15 @@ export class Mensaje {
     @Column({ type: 'timestamp', nullable: false })
     fechaEnvio: Date;
 
+    // Ubicación opcional adjunta al mensaje (p.ej. "estoy aquí esperando el bus").
+    // Se guardan por separado en vez de un punto geométrico porque no se
+    // necesitan consultas espaciales sobre este campo, solo mostrarlo.
+    @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+    ubicacionLat?: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+    ubicacionLng?: number;
+
     @Column({
       type: 'enum',
       enum: TipoMensaje,

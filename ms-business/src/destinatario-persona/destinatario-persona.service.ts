@@ -54,26 +54,51 @@ export class DestinatarioPersonaService {
       contenido: mensaje.contenido,
       fechaEnvio: mensaje.fechaEnvio,
       emisorId: mensaje.emisor?.id,
+      ubicacionLat: mensaje.ubicacionLat,
+      ubicacionLng: mensaje.ubicacionLng,
+      // Necesario para que el destinatario, al marcar el mensaje como
+      // leído desde el frontend, sepa qué fila exacta de DestinatarioPersona
+      // actualizar (un mismo mensaje puede tener varios destinatarios).
+      destinatarioPersonaId: saved.id,
     });
 
     return saved;
   }
 
   async marcarComoLeido(id: string) {
-    const destinatarioPersona = await this.findOne(id);
+    // Se necesita la relación mensaje.emisor (no solo mensaje) para poder
+    // notificar al EMISOR original que su mensaje fue leído — el lector ya
+    // lo sabe porque fue quien disparó la acción.
+    const destinatarioPersona = await this.destinatarioPersonaRepository.findOne({
+      where: { id },
+      relations: ['mensaje', 'mensaje.emisor', 'persona'],
+    });
+    if (!destinatarioPersona) {
+      throw new NotFoundException(`DestinatarioPersona with ID ${id} not found`);
+    }
+
+    // Si ya estaba marcado como leído, no reemitimos el evento (evita
+    // notificar al emisor repetidamente si el destinatario reabre el mensaje).
+    if (destinatarioPersona.leido) {
+      return destinatarioPersona;
+    }
 
     destinatarioPersona.leido = true;
     destinatarioPersona.fechaLectura = new Date();
 
     const saved = await this.destinatarioPersonaRepository.save(destinatarioPersona);
 
-    this.eventEmitter.emit('message.read', {
-      mensajeId: destinatarioPersona.mensaje.id,
-      fechaLectura: destinatarioPersona.fechaLectura,
-
-      // TEMPORAL
-      authId: destinatarioPersona.persona.authId,
-    });
+    const emisorAuthId = destinatarioPersona.mensaje.emisor?.authId;
+    if (emisorAuthId) {
+      this.eventEmitter.emit('message.read', {
+        mensajeId: destinatarioPersona.mensaje.id,
+        fechaLectura: destinatarioPersona.fechaLectura,
+        lectorPersonaId: destinatarioPersona.persona.id,
+        // authId del EMISOR del mensaje original: es a quien hay que avisar
+        // que su mensaje fue leído (no al lector, que ya lo sabe).
+        authId: emisorAuthId,
+      });
+    }
 
     return saved;
   }

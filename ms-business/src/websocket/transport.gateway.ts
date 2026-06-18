@@ -11,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { BusService } from '../bus/bus.service';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EtaNotifierService } from './eta-notifier.service';
+import { DestinatarioPersonaService } from '../destinatario-persona/destinatario-persona.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Persona } from '../persona/entities/persona.entity';
@@ -49,8 +50,10 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
   constructor(
     
     private readonly jwtService: JwtService,
-    private readonly busService: BusService,
+    private readonly busService: BusService, 
     private readonly etaNotifierService: EtaNotifierService,
+    private readonly destinatarioPersonaService: DestinatarioPersonaService,
+  ) {}
     @InjectRepository(Persona)
     private readonly personaRepository: Repository<Persona>,
   ) { }
@@ -74,6 +77,7 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
       client.data.user = payload;
 
       const roles = payload.roles || [];
+      const sub = payload.user_id || payload.authId || payload.id || payload.sub;
       const userId =
         payload.user_id ||
         payload.id ||
@@ -137,6 +141,26 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
     if (!payload?.routeId) throw new WsException('routeId requerido');
     client.leave(`route:${payload.routeId}`);
     return { status: 'left', room: `route:${payload.routeId}` };
+  }
+
+  @SubscribeMessage('mark_message_read')
+  async handleMarkMessageRead(client: Socket, payload: { destinatarioPersonaId: string }) {
+    // Se marca como leído solo cuando el destinatario tiene la bandeja de
+    // mensajes recibidos efectivamente abierta y visible (ver
+    // RecibidosMessages.tsx en el frontend) — no apenas se entrega el
+    // mensaje por socket, para que "leído" refleje algo más cercano a la
+    // realidad que solo "el socket estaba conectado".
+    if (!payload?.destinatarioPersonaId) {
+      throw new WsException('destinatarioPersonaId requerido');
+    }
+
+    try {
+      await this.destinatarioPersonaService.marcarComoLeido(payload.destinatarioPersonaId);
+      return { status: 'ok' };
+    } catch (e) {
+      console.error('[WS-Business] Error marcando mensaje como leído:', (e as Error).message);
+      throw new WsException('No se pudo marcar el mensaje como leído');
+    }
   }
 
   @SubscribeMessage('driver_location_update')
