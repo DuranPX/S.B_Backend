@@ -1,131 +1,315 @@
 import os
-from functools import wraps
+import requests
 from flask import Blueprint, request, jsonify
-from sockets.events import socketio
-
-from services import stop_alerts_store
 
 webhooks_bp = Blueprint('webhooks', __name__)
 
-INTERNAL_API_KEY = os.getenv("N8N_WEBHOOK_API_KEY", "default-dev-api-key")
+N8N_BASE_URL = os.getenv('N8N_BASE_URL', 'http://n8n:5678')
+N8N_API_KEY = os.getenv('N8N_WEBHOOK_API_KEY', 'buses-api-n8n')
+MS_BUSINESS_URL = os.getenv('MS_BUSINESS_URL', 'http://ms-business:3000/api')
 
-def require_api_key(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        api_key = request.headers.get("X-API-Key")
-        if not api_key or api_key != INTERNAL_API_KEY:
-            return jsonify({"error": "No autorizado"}), 401
-        return f(*args, **kwargs)
-    return decorated
+HEADERS_N8N = {
+    'Content-Type': 'application/json',
+    'x-api-key': N8N_API_KEY,
+}
 
-def emit_event(data):
-    """
-    Procesa el payload estándar y lo emite por WebSocket.
-    """
-    event_type = data.get("event_type", "general_alert")
-    target = data.get("target", {})
-    scope = target.get("scope", "all")
-    target_id = target.get("id")
-    
-    # Determinar la sala (room) a la cual enviar el evento
-    room = None
-    if scope == "all":
-        room = "all"
-    elif scope == "user" and target_id:
-        room = f"user_{target_id}"
-    elif scope == "role" and target_id:
-        room = f"role_{target_id}"
-    elif scope == "route" and target_id:
-        room = f"route_{target_id}"
-    elif scope == "zone" and target_id:
-        room = f"zone_{target_id}"
-    else:
-        room = "all"
-        
-    socketio.emit(event_type, data, to=room)
 
-@webhooks_bp.route('/webhooks/alerts', methods=['POST'])
-@require_api_key
-def webhook_alerts():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Payload inválido"}), 400
-    
-    emit_event(data)
-    return jsonify({"status": "ok", "message": "Alerta emitida"}), 200
+def call_n8n(path: str, payload: dict):
+    url = f"{N8N_BASE_URL}/webhook/{path}"
 
-@webhooks_bp.route('/webhooks/messages', methods=['POST'])
-@require_api_key
-def webhook_messages():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Payload inválido"}), 400
-    
-    emit_event(data)
-    return jsonify({"status": "ok", "message": "Mensaje emitido"}), 200
 
-@webhooks_bp.route('/webhooks/stop-arrival', methods=['POST'])
-@require_api_key
-def webhook_stop_arrival():
-    """
-    Webhook que dispara las alertas de 'bus a X minutos del paradero'.
-
-    Lo invoca ms-business cada vez que recalcula el ETA de un bus hacia los
-    paraderos de su ruta (al recibir una actualización de GPS).
-
-    Payload esperado:
-    {
-        "route_id": "uuid-ruta",
-        "stop_id": "uuid-paradero",
-        "bus_id": "uuid-bus",
-        "placa": "ABC-123",
-        "eta_min": 4.5
-    }
-
-    Por cada suscripción que cumpla (eta_min <= anticipation_min) y no se
-    haya disparado ya para este acercamiento, se emite el evento
-    'stop_alert_triggered' directamente al socket (sid) del ciudadano.
-    """
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Payload inválido"}), 400
-
-    route_id = data.get("route_id")
-    stop_id = data.get("stop_id")
-    eta_min = data.get("eta_min")
-
-    if not route_id or not stop_id or eta_min is None:
-        return jsonify({
-            "error": "route_id, stop_id y eta_min son obligatorios"
-        }), 400
-
-    try:
-        eta_min = float(eta_min)
-    except (TypeError, ValueError):
-        return jsonify({"error": "eta_min debe ser numérico"}), 400
-
-    subscriptions = stop_alerts_store.get_subscriptions_to_trigger(
-        route_id, stop_id, eta_min
+    response = requests.post(
+        url,
+        json=payload,
+        headers=HEADERS_N8N,
+        timeout=30
     )
 
-    for sub in subscriptions:
-        socketio.emit(
-            "stop_alert_triggered",
+    print("STATUS:", response.status_code)
+    print("CONTENT-TYPE:", response.headers.get("content-type"))
+    print("BODY:", response.text)
+
+    response.raise_for_status()
+
+    try:
+        return response.json()
+    except Exception:
+        return {
+            "raw_response": response.text,
+            "content_type": response.headers.get("content-type")
+        }
+
+
+def call_business(method: str, path: str, payload: dict = None):
+    """Helper para llamar ms-business."""
+    url = f"{MS_BUSINESS_URL}/{path}"
+    if method.upper() == 'GET':
+        response = requests.get(url, timeout=10)
+    elif method.upper() == 'PATCH':
+        response = requests.patch(url, json=payload, timeout=10)
+    else:
+        response = requests.post(url, json=payload, timeout=10)
+    response.raise_for_status()
+    return response.json()
+
+
+# ─────────────────────────────────────────────
+# CITAS
+# ─────────────────────────────────────────────
+
+@webhooks_bp.route('/citas/disponibilidad', methods=['POST'])
+def citas_disponibilidad():
+    """
+    Frontend → ms-notifications → n8n → Google Calendar FreeBusy → slots
+    Body: { tipoAtencion, tipoConsulta }
+    """
+    try:
+        body = request.get_json() or {}
+        resultado = call_n8n('citas-disponibilidad', body)
+        return jsonify(resultado), 200
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Error consultando disponibilidad', 'detail': str(e)}), 502
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@webhooks_bp.route('/citas/confirmar', methods=['POST'])
+def citas_confirmar():
+    """
+    Frontend → ms-notifications → n8n → Google Calendar (crea evento) → email
+    Body: { nombre, email, tipoAtencion, tipoConsulta, asesorId,
+            calendarId, fechaInicio, fechaFin, motivo }
+    """
+    try:
+        body = request.get_json() or {}
+        resultado = call_n8n('citas-confirmar', body)
+        return jsonify(resultado), 200
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Error confirmando cita', 'detail': str(e)}), 502
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ─────────────────────────────────────────────
+# PQRS
+# ─────────────────────────────────────────────
+
+def call_n8n_multipart(webhook_name: str, fields: dict, files: list):
+    url = f"{N8N_BASE_URL}/webhook/{webhook_name}"
+
+    headers_sin_content_type = {
+        'x-api-key': N8N_API_KEY,
+    }
+
+    response = requests.post(
+        url,
+        headers=headers_sin_content_type,
+        data=fields,
+        files=files,
+        timeout=30
+    )
+
+    print("STATUS:", response.status_code)
+    print("CONTENT-TYPE:", response.headers.get("content-type"))
+    print("BODY:", response.text)
+
+    response.raise_for_status()
+
+    try:
+        return response.json()
+    except Exception:
+        return {
+            "raw_response": response.text,
+            "content_type": response.headers.get("content-type")
+        }
+
+
+@webhooks_bp.route('/pqrs', methods=['GET'])
+def pqrs_consultar_todo():
+    try:
+        url = f"{MS_BUSINESS_URL}/pqrs"
+
+        response = requests.get(url, timeout=10)
+
+        response.raise_for_status()
+
+        return (
+            response.content,
+            response.status_code,
             {
-                "subscription_id": sub["id"],
-                "route_id": route_id,
-                "stop_id": stop_id,
-                "bus_id": data.get("bus_id"),
-                "placa": data.get("placa"),
-                "eta_min": eta_min,
-                "anticipation_min": sub["anticipation_min"],
-                "title": "🚌 Tu bus está cerca",
-                "body": f"Llega en aproximadamente {round(eta_min)} min a tu paradero.",
+                'Content-Type':
+                    response.headers.get(
+                        'Content-Type',
+                        'application/octet-stream'
+                    )
+            }
+        )
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Error consultando PQRS', 'detail': str(e)}), 502
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@webhooks_bp.route('/pqrs', methods=['POST'])
+def pqrs_crear():
+    """
+    Frontend → ms-notifications → n8n (genera radicado, guarda en BD, envía emails)
+    Acepta multipart/form-data (con fotos) o application/json (sin fotos)
+    """
+    try:
+        content_type = request.content_type or ''
+
+        if 'multipart/form-data' in content_type:
+            # Leer campos de texto del formulario
+            body = {
+                'tipo':          request.form.get('tipo', 'Petición'),
+                'categoria':     request.form.get('categoria', 'Otro'),
+                'descripcion':   request.form.get('descripcion', ''),
+                'emailContacto': request.form.get('emailContacto', ''),
+            }
+
+            # Leer archivos (máximo 3)
+            archivos = request.files.getlist('fotos')[:3]
+
+            if archivos:
+                # Reenviar a n8n como multipart también
+                files_payload = [
+                    ('fotos', (f.filename, f.read(), f.content_type))
+                    for f in archivos
+                ]
+                resultado = call_n8n_multipart('pqrs-crear', body, files_payload)
+            else:
+                resultado = call_n8n('pqrs-crear', body)
+
+        elif 'application/json' in content_type:
+            body = request.get_json() or {}
+            resultado = call_n8n('pqrs-crear', body)
+
+        else:
+            return jsonify({'error': f'Content-Type no soportado: {content_type}'}), 415
+
+        return jsonify(resultado), 201
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Error creando PQRS', 'detail': str(e)}), 502
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@webhooks_bp.route('/pqrs/<radicado>', methods=['GET'])
+def pqrs_consultar(radicado: str):
+    """
+    Frontend → ms-notifications → ms-business (consulta estado)
+    """
+    try:
+        resultado = call_business('GET', f'pqrs/radicado/{radicado}')
+        return jsonify(resultado), 200
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            return jsonify({'error': f'PQRS {radicado} no encontrada'}), 404
+        return jsonify({'error': str(e)}), 502
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@webhooks_bp.route('/pqrs/<radicado>/estado', methods=['PATCH'])
+def pqrs_cambiar_estado(radicado: str):
+    """
+    Agente cambia estado → ms-notifications → ms-business (actualiza BD)
+                                            → n8n (notifica ciudadano por email)
+    Body: { estado, respuesta?, emailContacto }
+    """
+    try:
+        body = request.get_json() or {}
+
+        # 1. Actualizar en ms-business
+        call_business('PATCH', f'pqrs/radicado/{radicado}/estado', {
+            'estado': body.get('estado'),
+            'respuesta': body.get('respuesta'),
+        })
+
+        # 2. Notificar al ciudadano via n8n
+        response = requests.post(
+            f"{N8N_BASE_URL}/webhook/pqrs-estado",
+            json={
+                'radicado': radicado,
+                'nuevoEstado': body.get('estado'),
+                'respuesta': body.get('respuesta', ''),
+                'emailContacto': body.get('emailContacto'),
             },
-            to=sub["sid"],
+            headers={
+                'Content-Type': 'application/json',
+                'x-api-key': N8N_API_KEY,
+            },
+            timeout=30,
         )
 
-    return jsonify({
-        "status": "ok",
-        "triggered_count": len(subscriptions),
-    }), 200
+        response.raise_for_status()
+
+        return jsonify({'success': True, 'message': 'Estado actualizado y ciudadano notificado'}), 200
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Error actualizando estado', 'detail': str(e)}), 502
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@webhooks_bp.route('/pqrs/<pqrsId>/fotos/<fotoId>', methods=['GET'])
+def pqrs_foto(pqrsId: str, fotoId: str):
+
+    try:
+
+        url = f"{MS_BUSINESS_URL}/pqrs/{pqrsId}/fotos/{fotoId}"
+
+        response = requests.get(url, timeout=10)
+
+        response.raise_for_status()
+
+        return (
+            response.content,
+            response.status_code,
+            {
+                'Content-Type':
+                    response.headers.get(
+                        'Content-Type',
+                        'application/octet-stream'
+                    )
+            }
+        )
+
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            return jsonify({
+                'error': f'Foto {fotoId} no encontrada'
+            }), 404
+
+        return jsonify({'error': str(e)}), 502
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ─────────────────────────────────────────────
+# CLIMA (toggle desde perfil)
+# ─────────────────────────────────────────────
+
+@webhooks_bp.route('/clima/alerta', methods=['PATCH'])
+def clima_toggle_alerta():
+    """
+    Frontend → ms-notifications → ms-business (actualiza preferencia)
+    Body: { ciudadanoId, activa, horarioViaje? }
+    """
+    try:
+        body = request.get_json() or {}
+        ciudadano_id = body.get('ciudadanoId')
+
+        if not ciudadano_id:
+            return jsonify({'error': 'ciudadanoId es requerido'}), 400
+
+        resultado = call_business('PATCH', f'ciudadano/{ciudadano_id}/alerta-clima', {
+            'activa': body.get('activa', False),
+            'horarioViaje': body.get('horarioViaje'),
+        })
+
+        return jsonify(resultado), 200
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': 'Error actualizando alerta de clima', 'detail': str(e)}), 502
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
