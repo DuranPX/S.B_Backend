@@ -14,18 +14,36 @@ export class DireccionService {
     ) { }
 
     async create(createDireccionDto: CreateDireccionDto): Promise<Direccion> {
-        // Verificar que el ciudadano existe
+
         if (!createDireccionDto.ciudadanoId) {
             throw new NotFoundException('El ciudadanoId es obligatorio');
         }
-        const ciudadano = await this.ciudadanoService.findOne(createDireccionDto.ciudadanoId);
+
+        const ciudadano = await this.ciudadanoService.findOne(
+            createDireccionDto.ciudadanoId
+        );
+
 
         if (ciudadano.direccion) {
-            throw new ConflictException(`El ciudadano con id ${createDireccionDto.ciudadanoId} ya tiene una direccion registrada`);
+            throw new ConflictException(
+                `El ciudadano con id ${createDireccionDto.ciudadanoId} ya tiene una direccion registrada`
+            );
         }
 
-        const direccion = this.direccionRepository.create()
-        direccion.ciudadano = ciudadano;
+
+        const direccion = this.direccionRepository.create({
+
+            calle: createDireccionDto.calle,
+            ciudad: createDireccionDto.ciudad,
+            pais: createDireccionDto.pais,
+            zona: createDireccionDto.zona,
+
+            ciudadano
+
+        });
+
+        console.log("CREANDO DIRECCION", createDireccionDto);
+
         return await this.direccionRepository.save(direccion);
     }
 
@@ -46,23 +64,54 @@ export class DireccionService {
         return direccion;
     }
 
+    async findZonas(): Promise<string[]> {
+
+        const zonas = await this.direccionRepository
+            .createQueryBuilder('direccion')
+            .select('DISTINCT direccion.zona', 'zona')
+            .where('direccion.zona IS NOT NULL')
+            .getRawMany();
+
+        return zonas.map(z => z.zona);
+    }
+
     async update(id: string, updateDireccionDto: UpdateDireccionDto): Promise<Direccion> {
+
         const direccion = await this.findOne(id);
 
-        // Solo actualizamos la persona si llega un personaId nuevo
-        if (updateDireccionDto.ciudadanoId) {
-            const ciudadano = await this.ciudadanoService.findOne(updateDireccionDto.ciudadanoId);
 
-            // Verificar que esa persona no tenga ya otro ciudadano
+        if (updateDireccionDto.ciudadanoId) {
+
+            const ciudadano = await this.ciudadanoService.findOne(
+                updateDireccionDto.ciudadanoId
+            );
+
+
             const existing = await this.direccionRepository.findOne({
-                where: { ciudadano: { id: updateDireccionDto.ciudadanoId } }
+                where: {
+                    ciudadano: {
+                        id: updateDireccionDto.ciudadanoId
+                    }
+                }
             });
+
+
             if (existing && existing.id !== id) {
-                throw new ConflictException(`El ciudadano con id ${updateDireccionDto.ciudadanoId} ya tiene una direccion registrada`);
+                throw new ConflictException(
+                    `El ciudadano con id ${updateDireccionDto.ciudadanoId} ya tiene una direccion registrada`
+                );
             }
+
 
             direccion.ciudadano = ciudadano;
         }
+
+
+        Object.assign(
+            direccion,
+            updateDireccionDto
+        );
+
 
         return await this.direccionRepository.save(direccion);
     }

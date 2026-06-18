@@ -18,4 +18,7 @@ export class Direccion {
 
     @Column()
     pais?: string;
+    
+    @Column({ nullable: true })
+    zona?: string;
 }

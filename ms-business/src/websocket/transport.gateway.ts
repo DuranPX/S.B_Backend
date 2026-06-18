@@ -11,6 +11,9 @@ import { JwtService } from '@nestjs/jwt';
 import { BusService } from '../bus/bus.service';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EtaNotifierService } from './eta-notifier.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Persona } from '../persona/entities/persona.entity';
 
 export const WS_EVENTS = {
   ROUTE_BUS_LOCATION_UPDATED: 'route_bus_location_updated',
@@ -28,6 +31,8 @@ export const WS_EVENTS = {
   ACTIVE_TRIP_STATUS: 'active_trip_status',
   SHIFT_STARTED: 'shift_started',
   DRIVER_LOCATION_UPDATED: 'driver_location_updated',
+  ALERTA_MASIVA: 'alerta_masiva',
+  ALERTA_URGENTE: 'alerta_urgente',
   BUS_LOCATION_UPDATED: 'bus_location_updated',
   PRIVATE_MESSAGE_RECEIVED: 'private_message_received',
   PRIVATE_MESSAGE_READ: 'private_message_read',
@@ -42,15 +47,18 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
   server!: Server;
 
   constructor(
+    
     private readonly jwtService: JwtService,
     private readonly busService: BusService,
     private readonly etaNotifierService: EtaNotifierService,
-  ) {}
+    @InjectRepository(Persona)
+    private readonly personaRepository: Repository<Persona>,
+  ) { }
 
   async handleConnection(client: Socket) {
     try {
       console.log(`[WS-Business] Intento de conexión: ${client.id}`);
-      
+
       const disableJwt = process.env.DISABLE_JWT === 'true';
       let payload;
 
@@ -62,18 +70,53 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
         if (!token) throw new Error('Token no proporcionado');
         payload = this.jwtService.verify(token.replace('Bearer ', ''));
       }
-      
-      client.data.user = payload;
-      
-      const roles = payload.roles || [];
-      const sub = payload.sub || payload.id || payload.authId;
 
-      if (roles.includes('Driver') || roles.includes('Conductor')) {
-        client.join(`driver:${sub}`);
+      client.data.user = payload;
+
+      const roles = payload.roles || [];
+      const userId =
+        payload.user_id ||
+        payload.id ||
+        payload.authId ||
+        payload.sub;
+
+      if (roles.includes('Driver')) {
+        client.join(`driver:${userId}`);
       }
-      client.join(`user:${sub}`);
-      
-      console.log(`[WS-Business] 🟢 Conectado cliente: ${client.id}, UserID: ${sub}`);
+      client.join(`user:${userId}`);
+
+      client.join('all');
+
+      const persona = await this.personaRepository.findOne({
+        where: {
+          authId: payload.authId,
+        },
+        relations: [
+          'ciudadano',
+          'ciudadano.direccion'
+        ],
+      });
+
+      if (persona?.ciudadano?.direccion?.zona) {
+
+        client.join(
+          `zone_${persona.ciudadano.direccion.zona}`
+        );
+
+        console.log(
+          '[WS] Usuario unido a zona:',
+          persona.ciudadano.direccion.zona
+        );
+      }
+
+      console.log('[WS-Business] Payload JWT', payload);
+
+      console.log(
+        '[WS-Business] Usuario unido a sala',
+        `user:${userId}`
+      );
+
+      console.log(`[WS-Business] 🟢 Conectado cliente: ${client.id}, UserID: ${userId}`);
     } catch (e) {
       console.error(`[WS-Business] 🔴 Error de conexión (${client.id}):`, (e as Error).message);
       client.disconnect(true);
@@ -102,10 +145,8 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
     payload: { lat: number; lng: number; busId: string; routeId: string },
   ) {
     const roles = client.data.user?.roles || [];
-    const isDriverOrAdmin =
-      roles.includes('Driver') || roles.includes('Conductor') || roles.includes('Admin');
-    if (!isDriverOrAdmin) {
-      throw new WsException('Unauthorized');
+    if (!roles.includes('Driver') && !roles.includes('Admin')) {
+       throw new WsException('Unauthorized');
     }
 
     // Buscar la placa real del bus en la BD
@@ -146,5 +187,4 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
       });
     }
   }
-
 }
