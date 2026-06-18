@@ -11,6 +11,12 @@ export class DestinatarioPersona {
     @Column({ type: 'boolean', default: false })
     leido: boolean;
 
+    @Column({
+    type: 'timestamp',
+    nullable: true,
+    })
+    fechaLectura?: Date;
+
     @ManyToOne(() => Mensaje, (mensaje) => mensaje.destinatariosPersona, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'mensaje_id' })
     mensaje: Mensaje;

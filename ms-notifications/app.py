@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import os
 from flask import Flask
 from flask_cors import CORS
@@ -10,10 +13,9 @@ from sockets.events import socketio
 def create_app():
     app = Flask(__name__)
     CORS(app, resources={r"/*": {"origins": "*"}})
-    
+
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'buses-api-n8n')
 
-    # Register blueprints for webhooks
     from routes.webhooks import webhooks_bp
     app.register_blueprint(webhooks_bp)
 
@@ -23,5 +25,4 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
     port = int(os.getenv('PORT', 5002))
-    # Run the app via SocketIO
     socketio.run(app, host='0.0.0.0', port=port, debug=True)
