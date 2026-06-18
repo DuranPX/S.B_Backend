@@ -8,6 +8,9 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Persona } from '../persona/entities/persona.entity';
 
 export const WS_EVENTS = {
   ROUTE_BUS_LOCATION_UPDATED: 'route_bus_location_updated',
@@ -25,6 +28,8 @@ export const WS_EVENTS = {
   ACTIVE_TRIP_STATUS: 'active_trip_status',
   SHIFT_STARTED: 'shift_started',
   DRIVER_LOCATION_UPDATED: 'driver_location_updated',
+  ALERTA_MASIVA: 'alerta_masiva',
+  ALERTA_URGENTE: 'alerta_urgente',
   BUS_LOCATION_UPDATED: 'bus_location_updated',
 };
 
@@ -36,12 +41,17 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+
+    @InjectRepository(Persona)
+    private readonly personaRepository: Repository<Persona>,
+  ) { }
 
   async handleConnection(client: Socket) {
     try {
       console.log(`[WS-Business] Intento de conexión: ${client.id}`);
-      
+
       const disableJwt = process.env.DISABLE_JWT === 'true';
       let payload;
 
@@ -54,18 +64,53 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
 
         payload = this.jwtService.verify(token.replace('Bearer ', ''));
       }
-      
+
       client.data.user = payload;
-      
+
       const roles = payload.roles || [];
-      const sub = payload.sub || payload.id || payload.authId;
+      const userId =
+        payload.user_id ||
+        payload.id ||
+        payload.authId ||
+        payload.sub;
 
       if (roles.includes('Driver')) {
-        client.join(`driver:${sub}`);
+        client.join(`driver:${userId}`);
       }
-      client.join(`user:${sub}`);
-      
-      console.log(`[WS-Business] 🟢 Conectado cliente: ${client.id}, UserID: ${sub}`);
+      client.join(`user:${userId}`);
+
+      client.join('all');
+
+      const persona = await this.personaRepository.findOne({
+        where: {
+          authId: payload.authId,
+        },
+        relations: [
+          'ciudadano',
+          'ciudadano.direccion'
+        ],
+      });
+
+      if (persona?.ciudadano?.direccion?.zona) {
+
+        client.join(
+          `zone_${persona.ciudadano.direccion.zona}`
+        );
+
+        console.log(
+          '[WS] Usuario unido a zona:',
+          persona.ciudadano.direccion.zona
+        );
+      }
+
+      console.log('[WS-Business] Payload JWT', payload);
+
+      console.log(
+        '[WS-Business] Usuario unido a sala',
+        `user:${userId}`
+      );
+
+      console.log(`[WS-Business] 🟢 Conectado cliente: ${client.id}, UserID: ${userId}`);
     } catch (e) {
       console.error(`[WS-Business] 🔴 Error de conexión (${client.id}):`, e.message);
       client.disconnect(true);
@@ -94,7 +139,7 @@ export class TransportGateway implements OnGatewayConnection, OnGatewayDisconnec
   handleDriverLocationUpdate(client: Socket, payload: { lat: number, lng: number, busId: string, routeId: string }) {
     const roles = client.data.user?.roles || [];
     if (!roles.includes('Driver') && !roles.includes('Admin')) {
-       throw new WsException('Unauthorized');
+      throw new WsException('Unauthorized');
     }
 
     if (payload.busId) {

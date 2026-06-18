@@ -1,15 +1,19 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsOptional, IsString } from "class-validator";
 
 export class BaseDireccionDto {
     @IsString()
-    @IsNotEmpty({ message: 'La calle es obligatoria' })
+    @IsOptional()
     calle?: string;
 
     @IsString()
-    @IsNotEmpty({ message: 'La ciudad es obligatoria' })
+    @IsOptional()
     ciudad?: string;
 
     @IsString()
-    @IsNotEmpty({ message: 'El pais es obligatorio' })
+    @IsOptional()
     pais?: string;
+
+    @IsString()
+    @IsOptional()
+    zona?: string;
 }

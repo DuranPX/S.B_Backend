@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Req,
+  Query,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { CreatePersonaDto } from './dto/create-persona.dto';
@@ -41,8 +42,8 @@ export class PersonaController {
 
   // GET /persona
   @Get()
-  findAll() {
-    return this.personaService.findAll();
+  findAll(@Query('search') search?: string) {
+    return this.personaService.findAll(search);
   }
 
   // GET /persona/:id

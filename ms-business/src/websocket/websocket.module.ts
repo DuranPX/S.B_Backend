@@ -4,9 +4,12 @@ import { TransportEventHandlers } from './transport.events';
 import { AuthModule } from '../auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Persona } from 'src/persona/entities/persona.entity';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([Persona]),
     AuthModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

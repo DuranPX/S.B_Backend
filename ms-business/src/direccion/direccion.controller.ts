@@ -6,7 +6,12 @@ import { UpdateDireccionDto } from './dto/update-direccion.dto';
 @Controller('direccion')
 export class DireccionController {
   constructor(private readonly direccionService: DireccionService) { }
-
+  
+  @Get('zonas')
+  findZonas() {
+    return this.direccionService.findZonas();
+  }
+  
   @Post()
   create(@Body() createDireccionDto: CreateDireccionDto) {
     return this.direccionService.create(createDireccionDto);
@@ -21,6 +26,7 @@ export class DireccionController {
   findOne(@Param('id') id: string) {
     return this.direccionService.findOne(id);
   }
+
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateDireccionDto: UpdateDireccionDto) {
