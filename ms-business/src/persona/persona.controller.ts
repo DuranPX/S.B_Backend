@@ -10,12 +10,12 @@ import {
   Patch,
   Post,
   Req,
+  Query,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
 import { PersonaService } from './persona.service';
-import { Query } from '@nestjs/common';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // NOTA DE SEGURIDAD – Fase 1
@@ -42,8 +42,8 @@ export class PersonaController {
 
   // GET /persona
   @Get()
-  findAll() {
-    return this.personaService.findAll();
+  findAll(@Query('search') search?: string) {
+    return this.personaService.findAll(search);
   }
 
   @Get('search')

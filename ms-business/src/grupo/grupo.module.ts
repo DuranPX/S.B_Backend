@@ -15,4 +15,4 @@ import { PersonaModule } from '../persona/persona.module';
     providers: [GrupoService],
     exports: [GrupoService],
 })
-export class GrupoModule { }
+export class GrupoModule {}

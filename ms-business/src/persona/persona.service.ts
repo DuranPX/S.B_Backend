@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
 import { Persona } from './entities/persona.entity';
@@ -12,7 +12,6 @@ import { Persona } from './entities/persona.entity';
 import { Conductor } from '../conductor/entities/conductor.entity';
 import { GrupoPersona } from '../grupo-persona/entities/grupo-persona.entity';
 import { Mensaje } from '../mensaje/entities/mensaje.entity';
-import { ILike } from 'typeorm';
 
 @Injectable()
 export class PersonaService {
@@ -28,42 +27,60 @@ export class PersonaService {
   ) { }
 
   async create(dto: CreatePersonaDto, authId: string): Promise<Persona> {
-  const existe = await this.personaRepo.findOneBy({ authId });
+    const existe = await this.personaRepo.findOneBy({ authId });
 
-  if (existe) {
-    throw new ConflictException(
-      'Ya existe un registro de Persona para este usuario.',
-    );
+    if (existe) {
+      throw new ConflictException(
+        'Ya existe un registro de Persona para este usuario.',
+      );
+    }
+
+    const payload: Partial<Persona> = {
+      authId,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      email: dto.email,
+      tipoDocumento: dto.tipoDocumento,
+      numeroDocumento: dto.numeroDocumento,
+      phone: dto.phone,
+    };
+
+    if (dto.birthDate) {
+      payload.birthDate = new Date(dto.birthDate);
+    }
+
+    const persona = this.personaRepo.create(payload);
+
+    return await this.personaRepo.save(persona);
   }
-
-  const payload: Partial<Persona> = {
-  authId,
-  firstName: dto.firstName,
-  lastName: dto.lastName,
-  email: dto.email,
-  tipoDocumento: dto.tipoDocumento,
-  numeroDocumento: dto.numeroDocumento,
-  phone: dto.phone,
-};
-
-  if (dto.birthDate) {
-    payload.birthDate = new Date(dto.birthDate);
-  }
-
-  const persona = this.personaRepo.create(payload);
-
-  return await this.personaRepo.save(persona);
-}
-
 
   // ── READ ALL ───────────────────────────────────────────────────────────────
-  findAll(): Promise<Persona[]> {
-    return this.personaRepo.find();
+  async findAll(search?: string): Promise<Persona[]> {
+    if (search) {
+      const results = await this.personaRepo.find({
+        where: [
+          { firstName: ILike(`%${search}%`) },
+          { lastName: ILike(`%${search}%`) },
+          { email: ILike(`%${search}%`) },
+        ],
+        take: 10,
+      });
+      console.log(`Búsqueda "${search}" devolvió ${results.length} resultados`); // ← agregar
+      return results;
+    }
+    return await this.personaRepo.find();
   }
 
   // ── READ ONE ───────────────────────────────────────────────────────────────
   async findOne(id: string): Promise<Persona> {
-    const persona = await this.personaRepo.findOneBy({ id });
+    const persona = await this.personaRepo.findOne({
+      where: { id },
+      relations: [
+        'ciudadano',
+        'ciudadano.direccion',
+        'conductor',
+      ],
+    });
     if (!persona) {
       throw new NotFoundException(`Persona con id "${id}" no encontrada.`);
     }
@@ -84,7 +101,7 @@ export class PersonaService {
   // ── UPDATE ─────────────────────────────────────────────────────────────────
   async update(id: string, dto: UpdatePersonaDto): Promise<Persona> {
     const persona = await this.findOne(id); // lanza NotFoundException si no existe
-    
+
     // Validar email duplicado (si se intenta cambiar)
     if (dto.email !== undefined && dto.email !== persona.email) {
       const existeEmail = await this.personaRepo.findOne({
@@ -96,7 +113,7 @@ export class PersonaService {
         );
       }
     }
-    
+
     // Validar numeroDocumento duplicado (si se intenta cambiar)
     if (dto.numeroDocumento !== undefined && dto.numeroDocumento !== persona.numeroDocumento) {
       const existeDocumento = await this.personaRepo.findOne({
@@ -108,7 +125,7 @@ export class PersonaService {
         );
       }
     }
-    
+
     const payload = { ...dto } as any;
     if (dto.birthDate) {
       payload.birthDate = new Date(dto.birthDate);
@@ -140,5 +157,20 @@ export class PersonaService {
     }
 
     return await this.personaRepo.remove(persona);
+  }
+
+  async findByAuthId(authId: string): Promise<Persona | null> {
+    return await this.personaRepo.findOne({
+      where: { authId },
+      relations: ['ciudadano', 'conductor'],
+    });
+  }
+
+  async findByEmail(email: string): Promise<Persona | null> {
+    return await this.personaRepo.findOne({ where: { email } });
+  }
+
+  async updateAuthId(personaId: string, newAuthId: string): Promise<void> {
+    await this.personaRepo.update(personaId, { authId: newAuthId });
   }
 }

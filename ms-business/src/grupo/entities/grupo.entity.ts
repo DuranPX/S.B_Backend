@@ -10,10 +10,23 @@ export class Grupo {
     @Column()
     nombre?: string;
 
-    @Column()
+    @Column({ nullable: true })
     descripcion?: string;
 
-    @Column()
+    @Column({ default: false })
+    esPublico?: boolean;
+
+    @Column({ type: 'longtext', nullable: true })
+    imagen?: string;
+
+    // authId del creador (viene del JWT de ms-security)
+    @Column({ nullable: true })
+    creadorAuthId?: string;
+
+    @Column({ type: 'simple-array', nullable: true, default: '' })
+    bloqueados?: string[]; // authIds bloqueados
+
+    @Column({ default: () => 'CURRENT_TIMESTAMP' })
     fechaCreacion?: Date;
 
     @OneToMany(() => GrupoPersona, (grupopersona) => grupopersona.grupo)
@@ -21,4 +34,15 @@ export class Grupo {
 
     @OneToMany(() => DestinatarioGrupo, (destinatariogrupo) => destinatariogrupo.grupo)
     destinatariosGrupo?: DestinatarioGrupo[];
+
+    @Column('simple-json', { nullable: true })
+    invitacionesPendientes?: string[];
+
+    @Column('simple-json', { nullable: true })
+    logMembresia?: Array<{
+        accion: string;
+        personaNombre: string;
+        realizadoPorNombre: string;
+        fecha: string;
+    }>;
 }

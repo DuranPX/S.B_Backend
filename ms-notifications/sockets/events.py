@@ -1,27 +1,51 @@
 import os
 import requests
-from flask_socketio import SocketIO, emit, join_room, disconnect
-from flask import request
+import random
 
+from datetime import datetime
+from math import radians, sin, cos, sqrt, atan2
+
+from flask import request
+from flask_socketio import SocketIO, emit, join_room
 from services import stop_alerts_store
 
-socketio = SocketIO(cors_allowed_origins="*")
+socketio = SocketIO(
+    cors_allowed_origins="*",
+    async_mode="eventlet",
+    logger=True,
+    engineio_logger=True,
+)
 
-MS_SECURITY_URL = os.getenv("MS_SECURITY_URL", "http://ms_security:5000/api/v1/auth/validate")
+MS_SECURITY_URL = os.getenv(
+    "MS_SECURITY_URL",
+    "http://ms_security:5000/api/v1/auth/validate",
+)
 
-# sid -> user_id, para poder asociar las suscripciones de alerta de paradero
-# al usuario que las creó sin tener que volver a validar el JWT en cada evento.
+# ==========================================================
+# Estado global de simulaciones activas
+# ==========================================================
+
+from threading import Lock
+
+active_routes = {}
+routes_lock = Lock()
+
+# sid -> user_id
 _connected_users: dict[str, str] = {}
 
+# ==========================================================
+# Seguridad
+# ==========================================================
+
 def validate_token_with_security(token):
-    """
-    Realiza una petición HTTP a ms_security para validar el JWT.
-    """
     if not token:
         return False, None
     try:
-        headers = {"Authorization": f"Bearer {token}"}
-        response = requests.get(MS_SECURITY_URL, headers=headers, timeout=5)
+        response = requests.get(
+            MS_SECURITY_URL,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=5,
+        )
         if response.status_code == 200:
             return True, response.json().get("user")
         return False, None
@@ -29,102 +53,230 @@ def validate_token_with_security(token):
         print(f"Error al validar token con ms_security: {e}")
         return False, None
 
-@socketio.on('connect')
+
+# ==========================================================
+# Helpers GPS
+# ==========================================================
+
+def calcular_distancia(lat1, lon1, lat2, lon2):
+    radio_tierra = 6371000
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = (
+        sin(dlat / 2) ** 2
+        + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    )
+    return radio_tierra * 2 * atan2(sqrt(a), sqrt(1 - a))
+
+
+# ==========================================================
+# Conexión / Desconexión  (una sola definición de cada una)
+# ==========================================================
+
+@socketio.on("connect")
 def handle_connect(auth):
-    """
-    Maneja la conexión del websocket.
-    Se espera que el frontend envíe el JWT en el objeto auth.
-    """
     print(f"[WS] Intento de conexión: {request.sid}")
-    
+
     disable_jwt = os.getenv("DISABLE_JWT", "false").lower() == "true"
-    
+
     if disable_jwt:
         print("[WS] 🟡 MODO TEST: Revisión de JWT desactivada")
         user_data = {"id": "test-user", "role": "Admin"}
-        is_valid = True
     else:
-        if not auth or 'token' not in auth:
+        if not auth or "token" not in auth:
             print("[WS] 🔴 Conexión rechazada: No se proporcionó token")
             return False
-        
-        token = auth.get('token')
+
+        token = auth.get("token")
         is_valid, user_data = validate_token_with_security(token)
-    
-    if not is_valid:
-        print("[WS] 🔴 Conexión rechazada: Token inválido")
-        return False
-    
+
+        if not is_valid:
+            print("[WS] 🔴 Conexión rechazada: Token inválido")
+            return False
+
     if user_data:
-        user_id = user_data.get('id')
-        user_role = user_data.get('role')
-        
+        user_id = user_data.get("id")
+        user_role = user_data.get("role")
+
         if user_id:
             join_room(f"user_{user_id}")
             _connected_users[request.sid] = user_id
         if user_role:
             join_room(f"role_{user_role}")
-            
-    join_room("all")
-    
-    print(f"[WS] 🟢 Conectado al servidor: ms-notifications, Cliente: {request.sid}")
-    emit('connected', {'status': 'success', 'message': 'Conectado a ms-notifications'})
 
-    # Si el usuario ya tenía alertas de paradero activas de una conexión
-    # anterior (p.ej. recargó la página), se reasocian a este nuevo sid y
-    # se le informan, para que el frontend restaure su estado sin que el
-    # ciudadano tenga que volver a activarlas manualmente.
+    join_room("all")
+
+    print(f"[WS] 🟢 Conectado: {request.sid}")
+    emit("connected", {"status": "success", "message": "Conectado a ms-notifications"})
+
+    # Restaurar alertas de paradero si el usuario ya tenía suscripciones
     user_id_for_claim = _connected_users.get(request.sid)
     if user_id_for_claim:
         claimed = stop_alerts_store.claim_subscriptions_for_user(
             user_id_for_claim, request.sid
         )
         if claimed:
-            print(f"[WS] 🔁 Alertas de paradero restauradas para {user_id_for_claim}: {len(claimed)}")
-            emit('stop_alerts_listed', {'subscriptions': claimed})
-@socketio.on('disconnect')
+            print(f"[WS] 🔁 Alertas restauradas para {user_id_for_claim}: {len(claimed)}")
+            emit("stop_alerts_listed", {"subscriptions": claimed})
+
+
+@socketio.on("disconnect")
 def handle_disconnect():
-    print(f"[WS] 🔴 Desconectado: io server disconnect (SID: {request.sid})")
+    print(f"[WS] 🔴 Desconectado (SID: {request.sid})")
     _connected_users.pop(request.sid, None)
-    # Ya no se eliminan las alertas: quedan "sueltas" del sid (asociadas
-    # solo al user_id) y se reclaman automáticamente si el mismo usuario
-    # vuelve a conectarse (ver claim_subscriptions_for_user en handle_connect).
-    # Las suscripciones sin user_id sí se limpian dentro de detach_sid.
     stop_alerts_store.detach_sid(request.sid)
 
 
-@socketio.on('subscribe_stop_alert')
+# ==========================================================
+# Seguimiento de rutas
+# ==========================================================
+
+@socketio.on("join_route_tracking")
+def join_route_tracking(data):
+    route_id = data["routeId"]
+    join_room(f"route_{route_id}")
+
+    with routes_lock:
+        if route_id in active_routes:
+            print(f"[TRACKING] Ruta ya activa {route_id}")
+            emit("tracking_joined", {"routeId": route_id})
+            return
+
+        active_routes[route_id] = {
+            "nodes": data["rutaNodos"],
+            "stops": data["rutaParaderos"],
+            "current_index": 0,
+            "running": True,
+        }
+
+    print(f"[TRACKING] Iniciando simulador {route_id}")
+    socketio.start_background_task(simulate_route, route_id)
+    emit("tracking_joined", {"routeId": route_id})
+
+
+@socketio.on("leave_route_tracking")
+def leave_route_tracking(data):
+    route_id = data["routeId"]
+    print(f"[TRACKING] Cancelando ruta {route_id}")
+    if route_id in active_routes:
+        del active_routes[route_id]
+
+
+# ==========================================================
+# Simulador
+# ==========================================================
+
+def simulate_route(route_id):
+    print(f"[SIMULATOR] Iniciando simulación {route_id}")
+
+    while route_id in active_routes:
+        route = active_routes[route_id]
+        nodes = route["nodes"]
+        stops = route["stops"]
+
+        if not nodes:
+            break
+
+        idx = route["current_index"]
+        node = nodes[idx]
+        lat = float(node["nodo"]["latitud"])
+        lng = float(node["nodo"]["longitud"])
+        bus_id = f"BUS-{route_id[:6]}"
+        placa = f"SIM-{route_id[:4]}"
+
+        socketio.emit(
+            "route_bus_location_updated",
+            {
+                "busId": bus_id,
+                "placa": placa,
+                "routeId": route_id,
+                "lat": lat,
+                "lng": lng,
+                "timestamp": datetime.utcnow().isoformat(),
+            },
+            to=f"route_{route_id}",
+        )
+
+        nearest_stop = None
+        min_distance = float("inf")
+
+        for stop_wrapper in stops:
+            stop = stop_wrapper["paradero"]
+            distance = calcular_distancia(
+                lat, lng,
+                float(stop["latitud"]),
+                float(stop["longitud"]),
+            )
+            if distance < min_distance:
+                min_distance = distance
+                nearest_stop = stop
+
+        if nearest_stop:
+            socketio.emit(
+                "nearby_bus_updated",
+                {
+                    "busId": bus_id,
+                    "paraderoId": nearest_stop["id"],
+                    "paraderoNombre": nearest_stop["nombre"],
+                    "paraderoLat": float(nearest_stop["latitud"]),
+                    "paraderoLng": float(nearest_stop["longitud"]),
+                    "distanciaMetros": round(min_distance),
+                },
+                to=f"route_{route_id}",
+            )
+
+        eta_segundos = max(0, (len(nodes) - idx) * 20)
+        socketio.emit(
+            "stop_arrival_estimation",
+            {
+                "busId": bus_id,
+                "etaSegundos": eta_segundos,
+                "ocupacionPorcentaje": random.randint(10, 95),
+            },
+            to=f"route_{route_id}",
+        )
+
+        delay = random.randint(0, 1200)
+        if delay >= 900:
+            nivel = "critico"
+        elif delay >= 300:
+            nivel = "moderado"
+        elif delay >= 60:
+            nivel = "leve"
+        else:
+            nivel = "en_tiempo"
+
+        socketio.emit(
+            "route_delay_updated",
+            {"busId": bus_id, "nivelRetraso": nivel},
+            to=f"route_{route_id}",
+        )
+
+        route["current_index"] = (idx + 1) % len(nodes)
+        socketio.sleep(10)
+
+    print(f"[SIMULATOR] Finalizada simulación {route_id}")
+
+
+# ==========================================================
+# Alertas de paradero
+# ==========================================================
+
+@socketio.on("subscribe_stop_alert")
 def handle_subscribe_stop_alert(payload):
-    """
-    El ciudadano activa una alerta para una ruta + paradero específicos,
-    con una anticipación en minutos (5, 10 o 15).
-
-    Payload esperado:
-    {
-        "route_id": "uuid-de-la-ruta",
-        "stop_id": "uuid-del-paradero",
-        "anticipation_min": 5 | 10 | 15
-    }
-
-    Responde con 'stop_alert_confirmed' (ack) o 'stop_alert_error'.
-    """
     payload = payload or {}
-    route_id = payload.get('route_id')
-    stop_id = payload.get('stop_id')
-    anticipation_min = payload.get('anticipation_min')
+    route_id = payload.get("route_id")
+    stop_id = payload.get("stop_id")
+    anticipation_min = payload.get("anticipation_min")
 
     if not route_id or not stop_id:
-        emit('stop_alert_error', {
-            'message': 'route_id y stop_id son obligatorios',
-        })
+        emit("stop_alert_error", {"message": "route_id y stop_id son obligatorios"})
         return
 
     try:
         anticipation_min = int(anticipation_min)
     except (TypeError, ValueError):
-        emit('stop_alert_error', {
-            'message': 'anticipation_min debe ser un número (5, 10 o 15)',
-        })
+        emit("stop_alert_error", {"message": "anticipation_min debe ser un número (5, 10 o 15)"})
         return
 
     try:
@@ -136,43 +288,29 @@ def handle_subscribe_stop_alert(payload):
             anticipation_min=anticipation_min,
         )
     except ValueError as e:
-        emit('stop_alert_error', {'message': str(e)})
+        emit("stop_alert_error", {"message": str(e)})
         return
 
     join_room(f"stop_eta:{route_id}:{stop_id}")
+    print(f"[WS] 🔔 Alerta activada: {subscription}")
+    emit("stop_alert_confirmed", subscription)
 
-    print(f"[WS] 🔔 Alerta de paradero activada: {subscription}")
-    emit('stop_alert_confirmed', subscription)
 
-
-@socketio.on('unsubscribe_stop_alert')
+@socketio.on("unsubscribe_stop_alert")
 def handle_unsubscribe_stop_alert(payload):
-    """
-    Desactiva una suscripción de alerta activa.
-
-    Payload esperado: { "subscription_id": "sub_123" }
-    """
     payload = payload or {}
-    subscription_id = payload.get('subscription_id')
+    subscription_id = payload.get("subscription_id")
 
     if not subscription_id:
-        emit('stop_alert_error', {
-            'message': 'subscription_id es obligatorio',
-        })
+        emit("stop_alert_error", {"message": "subscription_id es obligatorio"})
         return
 
     removed = stop_alerts_store.remove_subscription(request.sid, subscription_id)
-
-    if removed:
-        print(f"[WS] 🔕 Alerta de paradero desactivada: {subscription_id}")
-    emit('stop_alert_unsubscribed', {
-        'subscription_id': subscription_id,
-        'removed': removed,
-    })
+    print(f"[WS] 🔕 Alerta desactivada: {subscription_id}")
+    emit("stop_alert_unsubscribed", {"subscription_id": subscription_id, "removed": removed})
 
 
-@socketio.on('list_stop_alerts')
+@socketio.on("list_stop_alerts")
 def handle_list_stop_alerts():
-    """Devuelve las suscripciones activas del cliente actual (útil al reconectar)."""
     subscriptions = stop_alerts_store.list_for_sid(request.sid)
-    emit('stop_alerts_listed', {'subscriptions': subscriptions})
+    emit("stop_alerts_listed", {"subscriptions": subscriptions})

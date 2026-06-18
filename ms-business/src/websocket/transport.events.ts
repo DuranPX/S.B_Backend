@@ -4,7 +4,7 @@ import { TransportGateway, WS_EVENTS } from './transport.gateway';
 
 @Injectable()
 export class TransportEventHandlers {
-  constructor(private readonly transportGateway: TransportGateway) {}
+  constructor(private readonly transportGateway: TransportGateway) { }
 
   @OnEvent('bus.capacity_updated')
   handleCapacityUpdated(event: { programacionId: string, capacidad: number, routeId: string, busId: string }) {
@@ -45,11 +45,11 @@ export class TransportEventHandlers {
         message: 'Viaje completado - Gracias por usar nuestro servicio',
       });
     }
-    
+
     if (event.busId) {
-       this.transportGateway.server.to(`bus:${event.busId}`).emit(WS_EVENTS.PASSENGER_DESCENDED, {
-         timestamp: new Date().toISOString()
-       });
+      this.transportGateway.server.to(`bus:${event.busId}`).emit(WS_EVENTS.PASSENGER_DESCENDED, {
+        timestamp: new Date().toISOString()
+      });
     }
   }
 
@@ -70,16 +70,156 @@ export class TransportEventHandlers {
 
   @OnEvent('shift.ended')
   handleShiftEnded(event: { turnoId: string, conductorId: string, busId: string, horaFin: Date }) {
-      if (event.conductorId) {
-          this.transportGateway.server
-              .to(`driver:${event.conductorId}`)
-              .emit(WS_EVENTS.SHIFT_STARTED, {
-                  turnoId: event.turnoId,
-                  busId: event.busId,
-                  horaFin: event.horaFin,
-                  mensaje: 'Tu turno ha finalizado.',
-              });
-      }
+    if (event.conductorId) {
+      this.transportGateway.server
+        .to(`driver:${event.conductorId}`)
+        .emit(WS_EVENTS.SHIFT_STARTED, {
+          turnoId: event.turnoId,
+          busId: event.busId,
+          horaFin: event.horaFin,
+          mensaje: 'Tu turno ha finalizado.',
+        });
+    }
+  }
+
+  // ── Grupos ──
+  @OnEvent('grupo.miembro_agregado')
+  handleMiembroAgregado(event: { grupoId: string, nombreGrupo: string, authId: string, mensaje: string }) {
+    console.log('[WS] handleMiembroAgregado', event);
+    console.log(
+      '[WS] Enviando grupo_notificacion a',
+      `user:${event.authId}`
+    );
+    this.transportGateway.server
+      .to(`user:${event.authId}`)
+      .emit('grupo_notificacion', {
+        tipo: 'AGREGADO',
+        grupoId: event.grupoId,
+        nombreGrupo: event.nombreGrupo,
+        mensaje: event.mensaje,
+      });
+  }
+
+  @OnEvent('grupo.miembro_removido')
+  handleMiembroRemovido(event: { grupoId: string, nombreGrupo: string, authId: string, mensaje: string }) {
+    this.transportGateway.server
+      .to(`user:${event.authId}`)
+      .emit('grupo_notificacion', {
+        tipo: 'REMOVIDO',
+        grupoId: event.grupoId,
+        nombreGrupo: event.nombreGrupo,
+        mensaje: event.mensaje,
+      });
+  }
+
+  @OnEvent('grupo.miembro_unido')
+  handleMiembroUnido(event: { grupoId: string, nombreGrupo: string, nombrePersona: string, creadorAuthId: string }) {
+    if (event.creadorAuthId) {
+      console.log('[WS] handleMiembroUnido', event);
+      this.transportGateway.server
+        .to(`user:${event.creadorAuthId}`)
+        .emit('grupo_notificacion', {
+          tipo: 'NUEVO_MIEMBRO',
+          grupoId: event.grupoId,
+          nombreGrupo: event.nombreGrupo,
+          mensaje: `${event.nombrePersona} se unió al grupo "${event.nombreGrupo}"`,
+        });
+    }
+  }
+
+  @OnEvent('grupo.miembro_salio')
+  handleMiembroSalio(event: { grupoId: string, nombreGrupo: string, nombrePersona: string, creadorAuthId: string }) {
+    if (event.creadorAuthId) {
+      this.transportGateway.server
+        .to(`user:${event.creadorAuthId}`)
+        .emit('grupo_notificacion', {
+          tipo: 'MIEMBRO_SALIO',
+          grupoId: event.grupoId,
+          nombreGrupo: event.nombreGrupo,
+          mensaje: `${event.nombrePersona} abandonó el grupo "${event.nombreGrupo}"`,
+        });
+    }
+  }
+
+  @OnEvent('grupo.usuario_bloqueado')
+  handleUsuarioBloqueado(event: {
+    authId: string;
+    grupoId: string;
+    nombreGrupo: string;
+  }) {
+
+    this.transportGateway.server
+      .to(`user:${event.authId}`)
+      .emit('grupo_notificacion', {
+        tipo: 'BLOQUEADO',
+        grupoId: event.grupoId,
+        nombreGrupo: event.nombreGrupo,
+        mensaje: `Fuiste bloqueado del grupo "${event.nombreGrupo}"`,
+      });
+  }
+
+  // ── Mensajes ──
+  @OnEvent('mensaje.nuevo')
+  handleMensajeNuevo(event: { authId: string, mensajeId: string, emisorNombre: string, preview: string }) {
+    this.transportGateway.server
+      .to(`user:${event.authId}`)
+      .emit('mensaje_nuevo', {
+        mensajeId: event.mensajeId,
+        emisorNombre: event.emisorNombre,
+        preview: event.preview,
+        timestamp: new Date().toISOString(),
+      });
+  }
+
+  @OnEvent('mensaje.grupo')
+  handleMensajeGrupo(event: { grupoId: string, nombreGrupo: string, mensajeId: string, emisorNombre: string, preview: string, miembros: string[] }) {
+    for (const authId of event.miembros) {
+      this.transportGateway.server
+        .to(`user:${authId}`)
+        .emit('mensaje_grupo_nuevo', {
+          grupoId: event.grupoId,
+          nombreGrupo: event.nombreGrupo,
+          mensajeId: event.mensajeId,
+          emisorNombre: event.emisorNombre,
+          preview: event.preview,
+          timestamp: new Date().toISOString(),
+        });
+    }
+  }
+
+  @OnEvent('grupo.invitacion')
+  handleInvitacionGrupo(event: {
+    authId: string;
+    grupoId: string;
+    nombreGrupo: string;
+  }) {
+    this.transportGateway.server
+      .to(`user:${event.authId}`)
+      .emit('grupo_notificacion', {
+        tipo: 'INVITACION',
+        grupoId: event.grupoId,
+        nombreGrupo: event.nombreGrupo,
+        mensaje: `Has sido invitado al grupo "${event.nombreGrupo}"`,
+      });
+    console.log('Grupo notificación invitación: ', event);
+  }
+
+  @OnEvent('grupo.miembro_unido_bienvenida')
+  handleBienvenidaGrupo(event: {
+    authId: string;
+    grupoId: string;
+    nombreGrupo: string;
+    mensaje: string;
+  }) {
+    console.log('[WS] handleBienvenidaGrupo', event);
+    this.transportGateway.server
+      .to(`user:${event.authId}`)
+      .emit('grupo_notificacion', {
+        tipo: 'BIENVENIDA',
+        grupoId: event.grupoId,
+        nombreGrupo: event.nombreGrupo,
+        mensaje: event.mensaje,
+      });
   }
 
     @OnEvent('message.received')

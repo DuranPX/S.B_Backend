@@ -9,9 +9,12 @@ import { HttpModule } from '@nestjs/axios';
 import { RutaParaderoModule } from '../ruta_paradero/ruta_paradero.module';
 import { EtaNotifierService } from './eta-notifier.service';
 import { DestinatarioPersonaModule } from '../destinatario-persona/destinatario-persona.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Persona } from 'src/persona/entities/persona.entity';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([Persona]),
     AuthModule,
     BusModule,
     HttpModule,
