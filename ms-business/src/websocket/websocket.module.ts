@@ -8,6 +8,7 @@ import { BusModule } from 'src/bus/bus.module';
 import { HttpModule } from '@nestjs/axios';
 import { RutaParaderoModule } from '../ruta_paradero/ruta_paradero.module';
 import { EtaNotifierService } from './eta-notifier.service';
+import { DestinatarioPersonaModule } from '../destinatario-persona/destinatario-persona.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EtaNotifierService } from './eta-notifier.service';
     BusModule,
     HttpModule,
     RutaParaderoModule,
+    DestinatarioPersonaModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
