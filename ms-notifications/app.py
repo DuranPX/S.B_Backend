@@ -24,4 +24,4 @@ if __name__ == '__main__':
     app = create_app()
     port = int(os.getenv('PORT', 5002))
     # Run the app via SocketIO
-    socketio.run(app, host='0.0.0.0', port=port, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=port, debug=True)

@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import os
 import requests
 import random
@@ -8,7 +11,8 @@ from math import radians, sin, cos, sqrt, atan2
 from flask import request
 from flask_socketio import SocketIO, emit, join_room
 
-socketio = SocketIO(cors_allowed_origins="*")
+socketio = SocketIO( cors_allowed_origins="*", async_mode="eventlet", logger=True, engineio_logger=True,
+)
 
 MS_SECURITY_URL = os.getenv(
     "MS_SECURITY_URL",
@@ -19,7 +23,11 @@ MS_SECURITY_URL = os.getenv(
 # Estado global de simulaciones activas
 # ==========================================================
 
+from threading import Lock
+
 active_routes = {}
+
+routes_lock = Lock()
 
 # ==========================================================
 # Seguridad
@@ -87,65 +95,17 @@ def calcular_distancia(lat1, lon1, lat2, lon2):
 @socketio.on("connect")
 def handle_connect(auth):
 
-    print(f"[WS] Intento de conexión: {request.sid}")
-
-    disable_jwt = (
-        os.getenv("DISABLE_JWT", "false").lower() == "true"
+    print(
+        f"[WS] Conectado {request.sid}"
     )
-
-    if disable_jwt:
-
-        print("[WS] 🟡 MODO TEST: Revisión JWT desactivada")
-
-        user_data = {
-            "id": "test-user",
-            "role": "Admin"
-        }
-
-        is_valid = True
-
-    else:
-
-        if not auth or "token" not in auth:
-
-            print("[WS] 🔴 No se proporcionó token")
-
-            return False
-
-        token = auth.get("token")
-
-        is_valid, user_data = validate_token_with_security(
-            token
-        )
-
-    if not is_valid:
-
-        print("[WS] 🔴 Token inválido")
-
-        return False
-
-    if user_data:
-
-        user_id = user_data.get("id")
-        user_role = user_data.get("role")
-
-        if user_id:
-            join_room(f"user_{user_id}")
-
-        if user_role:
-            join_room(f"role_{user_role}")
 
     join_room("all")
-
-    print(
-        f"[WS] 🟢 Conectado a ms-notifications ({request.sid})"
-    )
 
     emit(
         "connected",
         {
             "status": "success",
-            "message": "Conectado a ms-notifications"
+            "message": "socket conectado"
         }
     )
 
@@ -167,29 +127,59 @@ def join_route_tracking(data):
 
     route_id = data["routeId"]
 
-    print(
-        f"[TRACKING] Suscripción ruta {route_id}"
+    join_room(
+        f"route_{route_id}"
     )
 
-    join_room(f"route_{route_id}")
+    with routes_lock:
 
-    if route_id not in active_routes:
+        if route_id in active_routes:
 
-        active_routes[route_id] = {
-            "nodes": data["rutaNodos"],
-            "stops": data["rutaParaderos"],
-            "current_index": 0
+            print(
+                f"[TRACKING] Ruta ya activa {route_id}"
+            )
+
+            emit(
+                "tracking_joined",
+                {
+                    "routeId":
+                    route_id
+                }
+            )
+
+            return
+
+        active_routes[
+            route_id
+        ] = {
+
+            "nodes":
+            data["rutaNodos"],
+
+            "stops":
+            data["rutaParaderos"],
+
+            "current_index":
+            0,
+
+            "running":
+            True,
         }
 
-        socketio.start_background_task(
-            simulate_route,
-            route_id
-        )
+    print(
+        f"[TRACKING] Iniciando simulador {route_id}"
+    )
+
+    socketio.start_background_task(
+        simulate_route,
+        route_id
+    )
 
     emit(
         "tracking_joined",
         {
-            "routeId": route_id
+            "routeId":
+            route_id
         }
     )
 
