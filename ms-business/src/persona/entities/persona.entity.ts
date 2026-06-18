@@ -2,6 +2,7 @@ import { Conductor } from '../../conductor/entities/conductor.entity';
 import { DestinatarioPersona } from '../../destinatario-persona/entities/destinatario-persona.entity';
 import { GrupoPersona } from '../../grupo-persona/entities/grupo-persona.entity';
 import { Mensaje } from '../../mensaje/entities/mensaje.entity';
+import { Asesor } from '../../asesor/entities/asesor.entity';
 import {
   Column,
   CreateDateColumn,
@@ -70,6 +71,9 @@ export class Persona {
 
   @OneToOne(() => Ciudadano, (ciudadano) => ciudadano.persona)
   ciudadano?: Ciudadano;
+
+  @OneToOne(() => Asesor, (asesor) => asesor.persona, { nullable: true })
+  asesor?: Asesor;
 
   @OneToMany(() => Mensaje, (m) => m.emisor)
   mensajesEnviados?: Mensaje[];

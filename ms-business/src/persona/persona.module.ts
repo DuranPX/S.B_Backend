@@ -4,6 +4,7 @@ import { Persona } from './entities/persona.entity';
 import { PersonaController } from './persona.controller';
 import { PersonaService } from './persona.service';
 
+
 import { Conductor } from '../conductor/entities/conductor.entity';
 import { GrupoPersona } from '../grupo-persona/entities/grupo-persona.entity';
 import { Mensaje } from '../mensaje/entities/mensaje.entity';
