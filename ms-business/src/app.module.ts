@@ -33,7 +33,8 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { RutaNodoModule } from './ruta_nodo/ruta_nodo.module';
 import { RutaParaderoModule } from './ruta_paradero/ruta_paradero.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { AlertaModule } from './alerta/alerta.module';
+import { AsesorModule } from './asesor/asesor.module';
+import { PqrsModule } from './pqrs/pqrs.module';import { AlertaModule } from './alerta/alerta.module';
 
 
 @Module({
@@ -84,7 +85,6 @@ import { AlertaModule } from './alerta/alerta.module';
     AuthModule,
     WebsocketModule,
     ScheduleModule.forRoot(),
-    AlertaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

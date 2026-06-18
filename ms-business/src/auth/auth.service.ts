@@ -5,7 +5,7 @@ import { Ciudadano } from '../ciudadano/entities/ciudadano.entity';
 import { Conductor } from '../conductor/entities/conductor.entity';
 import { MetodoPagoCiudadano } from '../metodo-pago-ciudadano/entities/metodo-pago-ciudadano.entity';
 import { MetodoPago, MetodoPagoTipo } from '../metodo-pago/entities/metodo-pago.entity';
-//import { Asesor } from '../asesor/entities/asesor.entity';
+import { Asesor } from '../asesor/entities/asesor.entity';
 
 @Injectable()
 export class AuthService {
@@ -155,7 +155,7 @@ export class AuthService {
             });
             await queryRunner.manager.save(billetera);
           }
-        } /* else {
+        } else {
           const isAsesor = jwtPayload.roles?.some(
             (r: any) => typeof r === 'string' &&
               r.toUpperCase().includes('ASESOR')
@@ -179,7 +179,7 @@ export class AuthService {
               await queryRunner.manager.save(asesor);
             }
           }
-        } */
+        }
       }
 
       await queryRunner.commitTransaction();
@@ -198,13 +198,13 @@ export class AuthService {
         roles: jwtPayload.roles,
         ciudadanoId: persona.ciudadano?.id || null,
         conductorId: persona.conductor?.id || null,
-        //asesorId: persona.asesor?.id || null,
-        //asesorCalendarId: persona.asesor?.calendarId || null,
+        asesorId: persona.asesor?.id || null,
+        asesorCalendarId: persona.asesor?.calendarId || null,
         status: 'SYNCED'
       };
-    } catch (error) {
+    } catch (err) {
       await queryRunner.rollbackTransaction();
-      throw new InternalServerErrorException('Error synchronizing user: ' + error);
+      throw new InternalServerErrorException('Error synchronizing user: ' + err.message);
     } finally {
       await queryRunner.release();
     }
